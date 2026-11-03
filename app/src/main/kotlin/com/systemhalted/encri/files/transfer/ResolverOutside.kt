@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.os.RemoteException
 import android.provider.DocumentsContract
+import android.provider.DocumentsContract.Document
 import android.provider.OpenableColumns
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -14,8 +15,8 @@ import java.io.InputStream
 import java.io.OutputStream
 
 /**
- * [Outside] over the phone's `ContentResolver`, which is how a file the system's picker handed over is
- * reached (AGENTS.md F6).
+ * [Outside] over the phone's `ContentResolver`, which is how a file or a folder the system's picker handed over
+ * is reached (AGENTS.md F6, F11).
  *
  * **Every call goes through an unstable client**, as encri learned to (its B100). A descriptor or a query
  * through the resolver's own methods holds a *stable* reference to the other app's provider, and when that
@@ -51,6 +52,71 @@ class ResolverOutside(
     }
 
     override fun openInput(uri: Uri): InputStream = ParcelFileDescriptor.AutoCloseInputStream(open(uri, "r"))
+
+    override fun folder(tree: Uri): PickedFolder {
+        // Only a tree has a document id of its own; anything else handed back is not a folder to copy.
+        val id =
+            runCatching { DocumentsContract.getTreeDocumentId(tree) }.getOrNull()
+                ?: return PickedFolder(tree, "", null, null)
+        val uri = DocumentsContract.buildDocumentUriUsingTree(tree, id)
+        val described =
+            asking(uri) { client ->
+                client.query(uri, FOLDER_COLUMNS, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        PickedFolder(
+                            tree,
+                            id,
+                            cursor.stringAt(Document.COLUMN_DISPLAY_NAME)?.takeIf(String::isNotBlank),
+                            cursor.longAt(Document.COLUMN_LAST_MODIFIED)?.takeIf { it > 0 },
+                        )
+                    } else {
+                        null
+                    }
+                }
+            }
+        return described ?: PickedFolder(tree, id, null, null)
+    }
+
+    /**
+     * What the app keeping [folder] lists in it, through the tree the user chose, so the picker's grant on that
+     * tree is what lets it be read. **A listing that is not all there is never answered as one** (F11): an app that
+     * says it is still loading, or reports an error beside its rows, or gives a row no document id to reach it by,
+     * or dies part way through the rows, is answered as such, because a folder copied from it would look whole.
+     */
+    override fun contents(folder: PickedFolder): Contents {
+        val children = DocumentsContract.buildChildDocumentsUriUsingTree(folder.tree, folder.id)
+        return asking(children) { client ->
+            client.query(children, CHILD_COLUMNS, null, null, null)?.use { cursor ->
+                val extras = cursor.extras
+                when {
+                    extras?.containsKey(DocumentsContract.EXTRA_ERROR) == true -> Contents.Refused
+                    extras?.getBoolean(DocumentsContract.EXTRA_LOADING) == true -> Contents.Loading
+                    else -> listed(folder.tree, cursor)
+                }
+            }
+        } ?: Contents.Refused
+    }
+
+    private fun listed(
+        tree: Uri,
+        cursor: Cursor,
+    ): Contents {
+        val files = mutableListOf<Picked>()
+        val folders = mutableListOf<PickedFolder>()
+        while (cursor.moveToNext()) {
+            val id = cursor.stringAt(Document.COLUMN_DOCUMENT_ID) ?: return Contents.Refused
+            val name = cursor.stringAt(Document.COLUMN_DISPLAY_NAME)?.takeIf(String::isNotBlank)
+            val type = cursor.stringAt(Document.COLUMN_MIME_TYPE) ?: OCTET_STREAM
+            val modified = cursor.longAt(Document.COLUMN_LAST_MODIFIED)?.takeIf { it > 0 }
+            if (type == Document.MIME_TYPE_DIR) {
+                folders += PickedFolder(tree, id, name, modified)
+            } else {
+                val uri = DocumentsContract.buildDocumentUriUsingTree(tree, id)
+                files += Picked(uri, name, type, cursor.longAt(Document.COLUMN_SIZE), modified)
+            }
+        }
+        return Contents.Listed(files, folders)
+    }
 
     /**
      * Opens [uri] for a copy out, asking for truncation and settling for less, as encri's export does (its
@@ -109,6 +175,18 @@ class ResolverOutside(
 
     private companion object {
         const val OCTET_STREAM = "application/octet-stream"
+
+        /** What a folder chosen is asked: every app keeping documents has these (`DocumentsContract.Document`). */
+        val FOLDER_COLUMNS = arrayOf(Document.COLUMN_DISPLAY_NAME, Document.COLUMN_LAST_MODIFIED)
+
+        val CHILD_COLUMNS =
+            arrayOf(
+                Document.COLUMN_DOCUMENT_ID,
+                Document.COLUMN_DISPLAY_NAME,
+                Document.COLUMN_MIME_TYPE,
+                Document.COLUMN_SIZE,
+                Document.COLUMN_LAST_MODIFIED,
+            )
 
         fun Cursor.stringAt(column: String): String? =
             getColumnIndex(column).takeIf { it >= 0 && !isNull(it) }?.let(::getString)

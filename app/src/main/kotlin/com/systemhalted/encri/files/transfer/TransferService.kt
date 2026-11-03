@@ -8,6 +8,7 @@ import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
+import android.provider.DocumentsContract
 import com.systemhalted.encri.files.Vaults
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -136,7 +137,7 @@ class TransferService : Service() {
         /**
          * The start intent: [uris] ride as `ClipData` with the grants the copy needs, which is how a grant this
          * process holds is handed to its own service — to read what is copied in, and to write where a copy out goes
-         * and read back how much it kept (encri B102).
+         * and read back how much it kept (encri B102). A folder copied in is one URI, its tree, granted as a prefix.
          */
         fun intentFor(
             context: Context,
@@ -150,6 +151,8 @@ class TransferService : Service() {
                     clipData = clip
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     if (direction == Direction.OUT) addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                    // A folder's grant reaches what is in it only as a prefix, which is how the picker gave it (F11).
+                    if (uris.any(DocumentsContract::isTreeUri)) addFlags(Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
                 }
             }
     }

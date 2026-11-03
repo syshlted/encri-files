@@ -30,6 +30,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.fakes.RoboMenuItem
 import org.robolectric.shadows.ShadowAlertDialog
+import org.robolectric.shadows.ShadowToast
 
 /** Copying files into the vault and out of it from the browsing screen (AGENTS.md F6). */
 @RunWith(RobolectricTestRunner::class)
@@ -302,6 +303,88 @@ class CopyScreenTest {
         assertNull(shadowOf(manager).getNotification(SystemTransferNotice.ANSWER_ID))
         controller.pause().stop()
         assertFalse(app.transfers.isWatched)
+    }
+
+    // ---- A folder (F11) -----------------------------------------------------------------------
+
+    /** Starts a folder copy from the menu, and hands [tree] back from the picker. */
+    private fun Activity.copyFolderIn(tree: Uri) {
+        onOptionsItemSelected(RoboMenuItem(FilesActivity.MENU_COPY_FOLDER_IN))
+        val asked = shadowOf(this).nextStartedActivityForResult
+        shadowOf(this).receiveResult(asked.intent, Activity.RESULT_OK, Intent().setData(tree))
+        settle()
+    }
+
+    @Test
+    fun `a folder is copied in from the menu, into the folder the user was in, and the bar says so`() {
+        val trip = outside.addFolder("Trip")
+        outside.add("a.txt", byteArrayOf(1), into = trip)
+        outside.add("b.txt", byteArrayOf(2), into = outside.addFolder("Day 1", trip))
+        val activity = start(Opening.Open(session)).get()
+        activity.tap(0)
+        activity.copyFolderIn(trip.tree)
+        assertEquals(listOf("Trip"), activity.rowNames())
+        assertEquals("create photos (unfinished) Trip", session.changes.first())
+        assertTrue(activity.transferText().startsWith("Copied “Trip” into the vault, with 2 files."))
+    }
+
+    @Test
+    fun `the picker is asked for a folder`() {
+        val activity = start(Opening.Open(session)).get()
+        activity.onOptionsItemSelected(RoboMenuItem(FilesActivity.MENU_COPY_FOLDER_IN))
+        assertEquals(Intent.ACTION_OPEN_DOCUMENT_TREE, shadowOf(activity).nextStartedActivityForResult.intent.action)
+    }
+
+    @Test
+    fun `a folder picker given up copies nothing`() {
+        val activity = start(Opening.Open(session)).get()
+        activity.onOptionsItemSelected(RoboMenuItem(FilesActivity.MENU_COPY_FOLDER_IN))
+        val asked = shadowOf(activity).nextStartedActivityForResult
+        shadowOf(activity).receiveResult(asked.intent, Activity.RESULT_CANCELED, null)
+        settle()
+        assertTrue(session.changes.isEmpty())
+        assertEquals(View.GONE, activity.transferBar().visibility)
+    }
+
+    @Test
+    fun `copying a folder in is offered where copying files in is, and nowhere else`() {
+        val menu = start(Opening.Open(session)).get().menu()
+        assertTrue(menu.findItem(FilesActivity.MENU_COPY_FOLDER_IN).isVisible)
+        val readOnly = FakeSession(root, mapOf("root" to listOf(notes)), setOf(Right.READ, Right.CREATE))
+        assertFalse(
+            start(Opening.Open(readOnly))
+                .get()
+                .menu()
+                .findItem(FilesActivity.MENU_COPY_FOLDER_IN)
+                .isVisible,
+        )
+    }
+
+    @Test
+    fun `a folder copied in runs behind the service, which is handed the folder's grant as a prefix`() {
+        val trip = outside.addFolder("Trip")
+        val activity = start(Opening.Open(session)).get()
+        activity.copyFolderIn(trip.tree)
+        val started = shadowOf(activity.application).nextStartedService
+        assertEquals(TransferService::class.java.name, started.component!!.className)
+        assertEquals(trip.tree, started.clipData!!.getItemAt(0).uri)
+        assertTrue(started.flags and Intent.FLAG_GRANT_PREFIX_URI_PERMISSION != 0)
+    }
+
+    @Test
+    fun `a folder chosen after the process was lost is not guessed at`() {
+        val activity = start(Opening.Open(session)).get()
+        activity.onOptionsItemSelected(RoboMenuItem(FilesActivity.MENU_COPY_FOLDER_IN))
+        val asked = shadowOf(activity).nextStartedActivityForResult
+        (RuntimeEnvironment.getApplication() as TestApplication).transfers.pendingFolderId = null
+        val chosen = Intent().setData(outside.addFolder("Trip").tree)
+        shadowOf(activity).receiveResult(asked.intent, Activity.RESULT_OK, chosen)
+        settle()
+        assertTrue(session.changes.isEmpty())
+        assertEquals(
+            "Nothing was copied: Encri Files was closed while you chose. Choose again.",
+            ShadowToast.getTextOfLatestToast(),
+        )
     }
 
     @Test

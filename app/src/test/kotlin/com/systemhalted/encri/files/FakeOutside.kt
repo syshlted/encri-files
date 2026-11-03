@@ -1,8 +1,10 @@
 package com.systemhalted.encri.files
 
 import android.net.Uri
+import com.systemhalted.encri.files.transfer.Contents
 import com.systemhalted.encri.files.transfer.Outside
 import com.systemhalted.encri.files.transfer.Picked
+import com.systemhalted.encri.files.transfer.PickedFolder
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException
@@ -11,8 +13,8 @@ import java.io.InputStream
 import java.io.OutputStream
 
 /**
- * The phone's storage outside the vault, standing in for the apps the system's picker reaches: files to copy in,
- * and the places copies out are written to.
+ * The phone's storage outside the vault, standing in for the apps the system's picker reaches: files and folders to
+ * copy in, and the places copies out are written to.
  */
 class FakeOutside : Outside {
     private class Kept(
@@ -22,6 +24,23 @@ class FakeOutside : Outside {
     )
 
     private val files = mutableMapOf<Uri, Kept>()
+
+    private class KeptFolder(
+        val folder: PickedFolder,
+        val files: MutableList<Picked> = mutableListOf(),
+        val folders: MutableList<PickedFolder> = mutableListOf(),
+    )
+
+    private val folders = mutableMapOf<String, KeptFolder>()
+
+    /** What listing a folder answers, by its id, in turn, before it answers what the folder holds. */
+    val answers = mutableMapOf<String, ArrayDeque<Contents>>()
+
+    /** Folders listed, by id, in order. */
+    val listed = mutableListOf<String>()
+
+    /** Run on every listing, which is how a test acts while a folder is walked. */
+    var whileListing: (() -> Unit)? = null
 
     /** What each copy out left at its place, once closed. */
     val written = mutableMapOf<Uri, ByteArray>()
@@ -49,7 +68,7 @@ class FakeOutside : Outside {
     var keptLength: (Uri) -> Long? = { written[it]?.size?.toLong() }
     var keptAsked = 0
 
-    /** Adds a file a picker could hand over, and answers its URI. */
+    /** Adds a file a picker could hand over, or one inside [into], and answers its URI. */
     @Suppress("LongParameterList") // A fixture: every field is one a test may want to set.
     fun add(
         name: String?,
@@ -58,10 +77,45 @@ class FakeOutside : Outside {
         size: Long? = bytes.size.toLong(),
         modified: Long? = null,
         failAfter: Int? = null,
+        into: PickedFolder? = null,
     ): Uri {
         val uri = Uri.parse("content://elsewhere/${files.size + 1}")
-        files[uri] = Kept(Picked(uri, name, mimeType, size, modified), bytes, failAfter)
+        val picked = Picked(uri, name, mimeType, size, modified)
+        files[uri] = Kept(picked, bytes, failAfter)
+        into?.let { folders.getValue(it.id).files += picked }
         return uri
+    }
+
+    /** Adds a folder inside [parent], or with none one a picker could hand over, whose [PickedFolder.tree] it is. */
+    fun addFolder(
+        name: String?,
+        parent: PickedFolder? = null,
+        modified: Long? = null,
+    ): PickedFolder {
+        val id = "folder-${folders.size + 1}"
+        val folder = PickedFolder(parent?.tree ?: Uri.parse("content://elsewhere/tree/$id"), id, name, modified)
+        folders[id] = KeptFolder(folder)
+        parent?.let { folders.getValue(it.id).folders += folder }
+        return folder
+    }
+
+    /** Lists [folder], already somewhere, inside [parent] too, as an app keeping a graph rather than a tree could. */
+    fun alsoInside(
+        folder: PickedFolder,
+        parent: PickedFolder,
+    ) {
+        folders.getValue(parent.id).folders += folder
+    }
+
+    override fun folder(tree: Uri): PickedFolder =
+        folders[tree.lastPathSegment]?.folder?.takeIf { it.tree == tree } ?: PickedFolder(tree, "", null, null)
+
+    override fun contents(folder: PickedFolder): Contents {
+        listed += folder.id
+        whileListing?.invoke()
+        val answer = answers[folder.id]?.removeFirstOrNull()
+        val kept = folders[folder.id]
+        return answer ?: kept?.let { Contents.Listed(it.files.toList(), it.folders.toList()) } ?: Contents.Refused
     }
 
     override fun describe(uri: Uri): Picked =

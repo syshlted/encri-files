@@ -43,10 +43,14 @@ interface VaultSession : AutoCloseable {
     /** A `content://` URI that lets one other app read [documentId] (encri D117). */
     suspend fun handOff(documentId: String): EncriResult<Uri>
 
-    /** A new folder named [name] in [parentId]. A name already there is refused, never changed. */
+    /**
+     * A new folder named [name] in [parentId]. A name already there is refused, never changed, unless [onNameTaken]
+     * says otherwise, which only a folder copied in does, for the unfinished name it is made under (F11).
+     */
     suspend fun createFolder(
         parentId: String,
         name: String,
+        onNameTaken: NameConflict = NameConflict.REFUSE,
     ): EncriResult<EncriDocument>
 
     /** [documentId] renamed to [name]. A name already there is refused, never changed. */

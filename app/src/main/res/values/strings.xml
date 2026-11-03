@@ -138,6 +138,37 @@
     <string name="reason_stopped">It was stopped.</string>
     <string name="reason_folder_gone">The folder is no longer in the vault.</string>
 
+    <!-- F11: copying a folder, and everything in it, into the vault. -->
+    <string name="copy_folder_in">Copy a folder in</string>
+    <string name="copying_looking">Looking through the folder…</string>
+    <!-- A whole folder copied in: "Copied “Trip” into the vault, with 37 files." -->
+    <plurals name="copied_folder_in">
+        <item quantity="one">Copied “%2$s” into the vault, with %1$d file.</item>
+        <item quantity="other">Copied “%2$s” into the vault, with %1$d files.</item>
+    </plurals>
+    <plurals name="copied_folder_in_unnamed">
+        <item quantity="one">Copied a folder into the vault, with %d file.</item>
+        <item quantity="other">Copied a folder into the vault, with %d files.</item>
+    </plurals>
+    <string name="copied_folder_in_some">Copied %1$d of %2$d files from “%3$s” into the vault.</string>
+    <string name="copied_folder_in_some_unnamed">Copied %1$d of %2$d files from a folder into the vault.</string>
+    <!-- A folder not copied in, and why: "The folder “Trip/Day 2”: The app it came from would not hand it over." -->
+    <string name="not_copied_folder_line">The folder “%1$s”: %2$s</string>
+    <string name="not_copied_folder_unnamed">A folder with no name: %1$s</string>
+    <string name="folder_left">What was copied is in “(unfinished) %1$s”. Rename it if that is enough, or delete it and copy the folder again.</string>
+    <string name="folder_left_unnamed">What was copied is in a folder with “(unfinished)” in its name. Rename it if that is enough, or delete it and copy the folder again.</string>
+    <string name="folder_left_empty">“(unfinished) %1$s” is left in the vault with nothing copied into it: delete it.</string>
+    <string name="folder_left_empty_unnamed">A folder with “(unfinished)” in its name is left in the vault with nothing copied into it: delete it.</string>
+    <string name="reason_still_loading">The app it came from was still fetching what is in it. Try again in a moment.</string>
+    <string name="reason_loops">The app it came from shows it inside itself.</string>
+    <!-- The number is FolderWalk.MAX_DEPTH. -->
+    <string name="reason_too_deep">It is more than 64 folders deep.</string>
+    <plurals name="transfer_notice_copied_folder_in">
+        <item quantity="one">Copied a folder with %d file into the vault</item>
+        <item quantity="other">Copied a folder with %d files into the vault</item>
+    </plurals>
+    <string name="transfer_notice_copied_folder_in_some">Copied %1$d of %2$d files from a folder into the vault</string>
+
     <!-- F7: sharing a document out of the vault through the share sheet. -->
     <string name="action_share">Share</string>
     <string name="share_title">Share “%1$s”?</string>

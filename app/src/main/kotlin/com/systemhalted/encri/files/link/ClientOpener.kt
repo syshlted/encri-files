@@ -91,7 +91,8 @@ private class ClientSession(
     override suspend fun createFolder(
         parentId: String,
         name: String,
-    ): EncriResult<EncriDocument> = session.createFolder(parentId, name, NameConflict.REFUSE)
+        onNameTaken: NameConflict,
+    ): EncriResult<EncriDocument> = session.createFolder(parentId, name, onNameTaken)
 
     override suspend fun rename(
         documentId: String,

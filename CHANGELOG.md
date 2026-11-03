@@ -5,6 +5,19 @@ than restating it.
 
 ## Unreleased
 
+### A folder copied in — 2026-11-03
+
+**Completed (F11).** *Copy a folder in*, beside *Copy files in*, copies a folder chosen in the system's picker into the
+vault, with the folders in it and all their files. The whole folder is looked through first, so a copy that will not
+fit, or whose name is already taken, is refused before anything is written. The folder is made as *(unfinished)* and
+takes its own name only once everything in it has arrived; one that did not all arrive keeps the marker with what did,
+and the bar names, by its path, each folder and file that was not copied and why. A folder its app will not list, or is
+still fetching after half a minute, is said rather than skipped. Checked on the A20 against encri with a folder of five
+files (1 GB the largest), three folders in it and one of them empty, with the app's task removed four seconds into the
+copy: everything arrived, at its size and with its date. The same build without the change that hands the folder's
+grant to the copy's service as a prefix lost the three files read after the task was gone, which is what the change is
+for.
+
 ### The first release — 2026-10-29
 
 **Under way (F9).** Every build but a developer's is made against the encri-api commit `config/encri-api.pin` names,

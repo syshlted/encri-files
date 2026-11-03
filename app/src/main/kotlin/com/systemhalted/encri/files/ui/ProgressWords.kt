@@ -11,13 +11,17 @@ import com.systemhalted.encri.files.transfer.Transfer
  * nothing**, which is what lets the notification say it on a locked screen.
  */
 object ProgressWords {
-    /** Which file of how many a copy in is at, or that a copy out is running. */
+    /** Which file of how many a copy in is at, that a folder is being looked through, or that a copy out is running. */
     fun doing(
         context: Context,
         running: Transfer.Running,
     ): String =
-        when (running.direction) {
-            Direction.IN -> {
+        when {
+            running.looking -> {
+                context.getString(R.string.copying_looking)
+            }
+
+            running.direction == Direction.IN -> {
                 context.getString(
                     R.string.copying_in,
                     (running.done + 1).coerceAtMost(running.total),
@@ -25,7 +29,7 @@ object ProgressWords {
                 )
             }
 
-            Direction.OUT -> {
+            else -> {
                 context.getString(R.string.copying_out)
             }
         }

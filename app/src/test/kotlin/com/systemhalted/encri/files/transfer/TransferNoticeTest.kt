@@ -117,6 +117,29 @@ class TransferNoticeTest {
     }
 
     @Test
+    fun `a folder copied in is counted, and neither it nor anything in it is named`() {
+        val whole = answered(Report.FolderIn("Secret trip", 3, 3, emptyList(), 0, Made.WHOLE))!!
+        assertEquals("Copied a folder with 3 files into the vault", whole.title())
+        assertNull(whole.text())
+        val left = listOf(NotCopied("Secret trip/plans.txt", Why.UNREADABLE))
+        val some = answered(Report.FolderIn("Secret trip", 3, 2, left, 0, Made.UNFINISHED))!!
+        assertEquals("Copied 2 of 3 files from a folder into the vault", some.title())
+        assertEquals("Open Encri Files to see what happened.", some.text())
+        assertFalse(some.title()!!.contains("Secret") || some.text()!!.contains("Secret"))
+        assertEquals(
+            "Nothing was copied into the vault",
+            answered(Report.FolderIn("Secret trip", 3, 0, left, 0, Made.NOTHING))!!.title(),
+        )
+    }
+
+    @Test
+    fun `a folder that arrived in full but could not take its name is not called whole`() {
+        val unnamed = listOf(NotCopied("Trip", Why.NAME_TAKEN, isFolder = true))
+        assertFalse(SystemTransferNotice.isWhole(Report.FolderIn("Trip", 1, 1, unnamed, 0, Made.UNFINISHED)))
+        assertTrue(SystemTransferNotice.isWhole(Report.FolderIn("Trip", 0, 0, emptyList(), 0, Made.WHOLE)))
+    }
+
+    @Test
     fun `a copy out says whether it finished, and never what it was`() {
         val whole = answered(Report.Out("secret-plans.txt", null))!!
         assertEquals("Copied a document out of the vault", whole.title())

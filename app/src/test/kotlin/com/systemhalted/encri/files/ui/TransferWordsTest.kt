@@ -1,6 +1,7 @@
 package com.systemhalted.encri.files.ui
 
 import com.systemhalted.encri.files.transfer.Direction
+import com.systemhalted.encri.files.transfer.Made
 import com.systemhalted.encri.files.transfer.NotCopied
 import com.systemhalted.encri.files.transfer.Report
 import com.systemhalted.encri.files.transfer.Transfer
@@ -158,6 +159,127 @@ class TransferWordsTest {
         assertEquals(
             "It is no longer in the vault.",
             context.getString(TransferWords.reasonOf(Why.GONE, Direction.OUT)),
+        )
+    }
+
+    // ---- A folder (F11) -----------------------------------------------------------------------
+
+    private val originals =
+        "The originals are still where they were, and not encrypted: copying a file in does not remove it. Delete " +
+            "them there if they should be in the vault alone."
+
+    @Test
+    fun `a folder being looked through says so, and names nothing`() {
+        assertEquals(
+            "Looking through the folder…\n" +
+                "You can leave Encri Files: the copy carries on until it is done, or until the vault locks.",
+            said(Transfer.Running(Direction.IN, 0, 0, 0, null, held = true, looking = true)),
+        )
+        assertNull(TransferWords.progressOf(Transfer.Running(Direction.IN, 0, 0, 0, null, looking = true)))
+    }
+
+    @Test
+    fun `a whole folder says its name and how many files came with it, and not over a locked vault`() {
+        val whole = Report.FolderIn("Trip", 2, 2, emptyList(), 0, Made.WHOLE)
+        assertEquals("Copied “Trip” into the vault, with 2 files.\n$originals", ended(whole))
+        assertEquals(
+            "Copied a folder into the vault, with 1 file.\n$originals",
+            ended(whole.copy(total = 1, copied = 1), namesShown = false),
+        )
+        assertEquals(
+            "Copied “Trip” into the vault, with 0 files.",
+            ended(Report.FolderIn("Trip", 0, 0, emptyList(), 0, Made.WHOLE)),
+        )
+    }
+
+    @Test
+    fun `a folder in part says how much came, each folder and file refused, the files a stop missed, and where`() {
+        val words =
+            ended(
+                Report.FolderIn(
+                    "Trip",
+                    4,
+                    1,
+                    listOf(
+                        NotCopied("Trip/Day 1", Why.BAD_NAME, isFolder = true),
+                        NotCopied(null, Why.NO_NAME, isFolder = true),
+                        NotCopied("Trip/b.txt", Why.STOPPED),
+                        NotCopied("Trip/Day 2/c.txt", Why.STOPPED),
+                    ),
+                    0,
+                    Made.UNFINISHED,
+                ),
+            )
+        assertEquals(
+            listOf(
+                "Copied 1 of 4 files from “Trip” into the vault.",
+                "The folder “Trip/Day 1”: That name cannot be used.",
+                "A folder with no name: The app it came from gives it no name.",
+                "2 were not copied. It was stopped.",
+                "What was copied is in “(unfinished) Trip”. Rename it if that is enough, or delete it and copy the " +
+                    "folder again.",
+                originals,
+            ),
+            words.lines(),
+        )
+    }
+
+    @Test
+    fun `over a locked vault a folder in part names neither itself nor what is missing`() {
+        val words =
+            ended(
+                Report.FolderIn(
+                    "Secret trip",
+                    2,
+                    1,
+                    listOf(NotCopied("Secret trip/plans.txt", Why.UNREADABLE)),
+                    0,
+                    Made.UNFINISHED,
+                ),
+                namesShown = false,
+            )
+        assertFalse(words.contains("Secret"))
+        assertEquals(
+            listOf(
+                "Copied 1 of 2 files from a folder into the vault.",
+                "Unlock the vault to see which were not copied, and why.",
+                "What was copied is in a folder with “(unfinished)” in its name. Rename it if that is enough, or " +
+                    "delete it and copy the folder again.",
+                originals,
+            ),
+            words.lines(),
+        )
+    }
+
+    @Test
+    fun `a folder refused before anything was made says why, of the folder`() {
+        assertEquals(
+            "Nothing was copied into the vault.\nThe folder “Trip”: Something with that name is already there.",
+            ended(Report.FolderIn("Trip", 3, 0, listOf(NotCopied("Trip", Why.NAME_TAKEN, true)), 0, Made.NOTHING)),
+        )
+        // A folder's own ending is said of the folder, never counted as files that were not copied.
+        assertEquals(
+            "Nothing was copied into the vault.\nThe folder “Trip”: The vault is locked.",
+            ended(Report.FolderIn("Trip", 0, 0, listOf(NotCopied("Trip", Why.LOCKED, true)), 0, Made.NOTHING)),
+        )
+    }
+
+    @Test
+    fun `a folder left with nothing in it says to delete it`() {
+        val left =
+            Report.FolderIn("Trip", 1, 0, listOf(NotCopied("Trip/a.txt", Why.LOCKED)), 1, Made.LEFT_EMPTY)
+        assertEquals(
+            listOf(
+                "Nothing was copied into the vault.",
+                "The vault is locked.",
+                "“(unfinished) Trip” is left in the vault with nothing copied into it: delete it.",
+                "One is left in the vault with “(unfinished)” in its name: delete it, and copy that file again.",
+            ),
+            ended(left).lines(),
+        )
+        assertEquals(
+            "A folder with “(unfinished)” in its name is left in the vault with nothing copied into it: delete it.",
+            ended(left, namesShown = false).lines()[2],
         )
     }
 

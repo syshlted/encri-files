@@ -104,16 +104,38 @@ class FakeSession(
         return handOffAnswer ?: EncriResult.Ok(Uri.parse("content://com.systemhalted.encri.open/$documentId"))
     }
 
+    /** When set, making a folder of this name fails with this reason, as encri refusing it does. */
+    var failFolder: Pair<String, Failure>? = null
+
+    /** Run once a folder is made, which is how a test acts after a copy has made its folder. */
+    var afterFolderMade: ((EncriDocument) -> Unit)? = null
+
+    @Suppress("ReturnCount") // One per answer encri gives.
     override suspend fun createFolder(
         parentId: String,
         name: String,
-    ): EncriResult<EncriDocument> =
-        change("create $parentId $name") {
-            folder("new-$name", name, parentId).also {
-                this.tree.getValue(parentId) += it
-                this.tree[it.id] = mutableListOf()
+        onNameTaken: NameConflict,
+    ): EncriResult<EncriDocument> {
+        failFolder?.let { (refused, failure) ->
+            if (refused == name) {
+                changes += "create $parentId $name"
+                return EncriResult.Failed(failure, "told to")
             }
         }
+        val siblings = this.tree.getValue(parentId)
+        val taken = siblings.any { it.name == name }
+        if (taken && onNameTaken == NameConflict.REFUSE) {
+            changes += "create $parentId $name"
+            return EncriResult.Failed(Failure.NAME_TAKEN, "taken")
+        }
+        val free = if (taken) "$name (1)" else name
+        return change("create $parentId $free") {
+            folder("new-$free", free, parentId).also {
+                siblings += it
+                this.tree[it.id] = mutableListOf()
+            }
+        }.also { made -> (made as? EncriResult.Ok)?.let { afterFolderMade?.invoke(it.value) } }
+    }
 
     override suspend fun rename(
         documentId: String,

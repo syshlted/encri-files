@@ -7,6 +7,7 @@ import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.Uri
+import android.provider.DocumentsContract
 import com.systemhalted.encri.files.FakeOpener
 import com.systemhalted.encri.files.FakeSession
 import com.systemhalted.encri.files.TestApplication
@@ -183,6 +184,18 @@ class TransferServiceTest {
         val intent = TransferService.intentFor(app, listOf(picked), Direction.OUT)
         assertTrue(intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
         assertTrue(intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION != 0)
+    }
+
+    @Test
+    fun `a folder's grant is handed on as a prefix, so it reaches what is in the folder, and a file's is not`() {
+        val tree = DocumentsContract.buildTreeDocumentUri("elsewhere", "trip")
+        val intent = TransferService.intentFor(app, listOf(tree), Direction.IN)
+        assertEquals(tree, intent.clipData!!.getItemAt(0).uri)
+        assertTrue(intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
+        assertTrue(intent.flags and Intent.FLAG_GRANT_PREFIX_URI_PERMISSION != 0)
+        assertEquals(0, intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        val file = TransferService.intentFor(app, listOf(picked), Direction.IN)
+        assertEquals(0, file.flags and Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
     }
 
     @Test

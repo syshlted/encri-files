@@ -15,7 +15,7 @@ app. What follows is encri's step 13 for the file manager (encri D112 to D118, D
 1. ~~**Previews**, with a toggle of this app's own, on by default (encri D112).~~ **Done 2026-10-23 (F4).**
 2. ~~**Writing**: a new folder, rename, delete and move.~~ **Done 2026-10-23 (F5)**, asking for every right.
 3. ~~**Copying in and out.**~~ **Done 2026-10-23 (F6).** Folders and several documents out at once are not
-   built; see F6.
+   built; see F6. **A folder in since 2026-11-03 (F11).**
 4. ~~**Sharing out**~~ **Done 2026-10-23 (F7)**, one document at a time.
 5. **encri's backup screens, by their public actions** (encri D123): *Back up*, *Save a backup file* and
    *Restore*. ~~Waits for encri to give the three screens their actions, which is encri's step 13 item 6.~~
@@ -35,7 +35,7 @@ app. What follows is encri's step 13 for the file manager (encri D112 to D118, D
   which is this app's first permission. Until then a long copy may pause or stop when the user leaves.~~ **Done
   2026-10-23 (F8).**
 - **Choosing several documents at once**, to copy out or share them together, which F6 and F7 left out; and
-  copying a folder.
+  copying a folder ~~in or~~ out (a folder in is F11).
 
 ## Before the first release
 

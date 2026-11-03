@@ -140,6 +140,7 @@ class FilesActivity :
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_NEW_FOLDER, Menu.NONE, R.string.new_folder)
         menu.add(Menu.NONE, MENU_COPY_IN, Menu.NONE, R.string.copy_in)
+        menu.add(Menu.NONE, MENU_COPY_FOLDER_IN, Menu.NONE, R.string.copy_folder_in)
         menu.add(Menu.NONE, MENU_MORE_RIGHTS, Menu.NONE, R.string.menu_more_rights)
         menu.add(Menu.NONE, MENU_RELOAD, Menu.NONE, R.string.menu_reload)
         menu.add(Menu.NONE, MENU_LOCK, Menu.NONE, R.string.menu_lock)
@@ -150,6 +151,7 @@ class FilesActivity :
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         menu.findItem(MENU_NEW_FOLDER).isVisible = Right.CREATE in screen.rights && screen.moving == null
         menu.findItem(MENU_COPY_IN).isVisible = screen.canCopyIn
+        menu.findItem(MENU_COPY_FOLDER_IN).isVisible = screen.canCopyIn
         menu.findItem(MENU_MORE_RIGHTS).isVisible = screen.wantsMoreRights
         menu.findItem(MENU_RELOAD).isVisible = screen.canReload
         menu.findItem(MENU_LOCK).isVisible = screen.canLock
@@ -170,6 +172,10 @@ class FilesActivity :
 
             MENU_COPY_IN -> {
                 chooseFilesToCopy()
+            }
+
+            MENU_COPY_FOLDER_IN -> {
+                chooseFolderToCopy()
             }
 
             MENU_MORE_RIGHTS -> {
@@ -232,6 +238,19 @@ class FilesActivity :
         )
     }
 
+    /**
+     * Asks the system's picker for a folder to copy, with everything in it, into the folder being looked at (F11).
+     * The picker grants the folder as a tree, which this app does not keep: no persistable grant is taken, so the
+     * system's record of what this app may read is not added to.
+     */
+    private fun chooseFolderToCopy() {
+        val folder =
+            vaults.browser.path.value
+                .lastOrNull() ?: return
+        vaults.transfers.pendingFolderId = folder.id
+        pick(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), REQUEST_COPY_FOLDER_IN)
+    }
+
     /** Asks the system's picker where a copy of [document] goes (F6); the user has read what it costs. */
     private fun chooseWhereToCopy(document: EncriDocument) {
         vaults.transfers.pendingDocument = document
@@ -267,6 +286,10 @@ class FilesActivity :
                 copyIn(if (resultCode == RESULT_OK) chosen(data) else emptyList())
             }
 
+            REQUEST_COPY_FOLDER_IN -> {
+                copyFolderIn(data?.data.takeIf { resultCode == RESULT_OK })
+            }
+
             REQUEST_COPY_OUT -> {
                 copyOut(data?.data.takeIf { resultCode == RESULT_OK })
             }
@@ -289,6 +312,17 @@ class FilesActivity :
             Toast.makeText(this, R.string.choose_again, Toast.LENGTH_LONG).show()
         } else if (vaults.transfers.copyIn(folderId, uris)) {
             holdTheCopy(uris, Direction.IN)
+        }
+    }
+
+    private fun copyFolderIn(tree: Uri?) {
+        val folderId = vaults.transfers.pendingFolderId
+        vaults.transfers.pendingFolderId = null
+        if (tree == null) return
+        if (folderId == null) {
+            Toast.makeText(this, R.string.choose_again, Toast.LENGTH_LONG).show()
+        } else if (vaults.transfers.copyFolderIn(folderId, tree)) {
+            holdTheCopy(listOf(tree), Direction.IN)
         }
     }
 
@@ -390,12 +424,14 @@ class FilesActivity :
         private const val REQUEST_NOTIFICATIONS = 5
         const val REQUEST_COPY_IN = 3
         const val REQUEST_COPY_OUT = 4
+        const val REQUEST_COPY_FOLDER_IN = 6
         const val MENU_RELOAD = 1
         const val MENU_LOCK = 2
         const val MENU_SETTINGS = 3
         const val MENU_NEW_FOLDER = 4
         const val MENU_MORE_RIGHTS = 5
         const val MENU_COPY_IN = 6
+        const val MENU_COPY_FOLDER_IN = 7
 
         /** The files the system's picker handed back: one in [Intent.getData], or several in its clip. */
         fun chosen(data: Intent?): List<Uri> {

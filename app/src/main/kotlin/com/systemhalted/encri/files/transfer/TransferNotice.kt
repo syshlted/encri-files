@@ -120,6 +120,10 @@ internal class SystemTransferNotice(
                 }
             }
 
+            is Report.FolderIn -> {
+                folderTitleOf(report)
+            }
+
             is Report.NoRoom -> {
                 context.getString(R.string.transfer_notice_copied_in_none)
             }
@@ -130,6 +134,26 @@ internal class SystemTransferNotice(
                 } else {
                     context.getString(R.string.transfer_notice_copy_out_failed)
                 }
+            }
+        }
+
+    /** A folder copied in, counted and never named: not even the folder's own name is said off a locked screen. */
+    private fun folderTitleOf(report: Report.FolderIn): String =
+        when {
+            report.made == Made.WHOLE -> {
+                context.resources.getQuantityString(
+                    R.plurals.transfer_notice_copied_folder_in,
+                    report.copied,
+                    report.copied,
+                )
+            }
+
+            report.copied == 0 -> {
+                context.getString(R.string.transfer_notice_copied_in_none)
+            }
+
+            else -> {
+                context.getString(R.string.transfer_notice_copied_folder_in_some, report.copied, report.total)
             }
         }
 
@@ -187,6 +211,7 @@ internal class SystemTransferNotice(
         fun isWhole(report: Report): Boolean =
             when (report) {
                 is Report.In -> report.notCopied.isEmpty() && report.leftUnfinished == 0
+                is Report.FolderIn -> report.made == Made.WHOLE
                 is Report.NoRoom -> false
                 is Report.Out -> report.why == null
             }
