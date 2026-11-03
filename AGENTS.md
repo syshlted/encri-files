@@ -573,9 +573,10 @@ upload. The keystores are found as `encri-app-signing.p12` (`app-signing`) and `
 `ENCRI_UPLOAD_KEYSTORE` and `ENCRI_UPLOAD_KEY_ALIAS` name another, as for the other two.
 
 **The upload key is this app's own**, `59:70:D4:B7…`, which Play takes from 7:03 PM on 2026-10-30 by the Console's
-clock, when the reset requested on 2026-10-28 takes effect (encri D140). Until then Play takes only encri's
-`46:0C:90:61…` for this app, so no bundle this kit signs can be uploaded before that time, and the release waits for
-it rather than being signed with encri's key and leaving the reset unused.
+clock, 23:03:47 UTC, when the reset requested on 2026-10-28 takes effect (encri D140). ~~Until then Play takes only
+encri's `46:0C:90:61…` for this app, so no bundle this kit signs can be uploaded before that time, and the release
+waits for it rather than being signed with encri's key and leaving the reset unused.~~ Until then Play takes no upload
+for this app at all, by either key, as was measured below.
 
 **On Play, the bundle needs the listing's automatic protection off** (encri D144): the bundle carries code
 transparency, which Play refuses beside it. **The signed APK goes to a GitHub release** (encri D142), and not before
@@ -609,6 +610,19 @@ padding (all 19 entries) and signing's 4 bundle entries, and `--verify` passed t
 the real one. *Seen once and not reproduced:* a `signed/` left holding the signed APK alone, when the terminal,
 `sign.sh` and bundletool were each sent SIGTERM at the same moment; `--verify` refuses such a directory for want of
 `SIGNED.txt`, and a second signing refuses to write over it.
+
+*Measured, 2026-10-30, while the reset was pending,* at the user's direction to try an upload before the new key was
+valid. A one-off kit of the same build, made from a scratch clone at `v0.1.0` whose `config/release-certificates` named
+encri's upload key and nothing else differed, signed the bundle with that key and passed `--verify`; Play refused it
+as signed with the wrong key, expecting SHA-1 `2C:EC:C9:1C…`, which the user's keytool showed is this app's own. So
+Play stopped taking encri's key for this app when it approved the reset, not at the time it gave. This kit then signed
+with this app's key and passed `--verify`, and Play refused that too, as "an upload certificate that is not yet valid
+because it has been recently reset", until 23:03:47 UTC. While an upload key reset is pending, nothing can be uploaded.
+The two kits' APKs came out the same byte for byte (`2fadc5ea…`), because the upload key signs the bundle alone. *Seen
+on the key machine:* `ENCRI_UPLOAD_KEYSTORE` and `ENCRI_UPLOAD_KEY_ALIAS`, exported for the one-off kit, were still
+set at the next signing, which opened encri's keystore and refused the password typed for this app's. A name given on
+the command line alone is safer than one exported, and the line `sign.sh` prints for the upload key names the alias it
+is about to use.
 
 *Measured, 2026-10-30,* the release itself: `6644860` built the same twice here (APK `7d447874…`, bundle `857967e6…`),
 was pushed, and `reproducible.yml`, run by hand on `master` at that commit, built the same two files on GitHub's runner
