@@ -1,7 +1,8 @@
-# encri-files — Project Facts & Decision Log
+# encri-files — agent guide
 
-> Living document. Append decisions as they're made; mark superseded ones rather than deleting them.
-> Date format: YYYY-MM-DD.
+> **Level 0 of four**, loaded into every session: only what is true for every component, laid out as the suite's
+> `docs/documentation.md` says. The rest loads when you touch a component or is read when needed. Keep it under 200
+> lines. Dates: YYYY-MM-DD.
 
 ## What this is
 
@@ -14,770 +15,172 @@ It builds against [encri-api](https://github.com/syshlted/encri-api)'s client li
 other app would (encri D115). It is meant to be read and lifted from, and is licensed Apache-2.0, as
 encri D115 chose and still flags for veto. encri itself is not open source (encri D116).
 
-What crosses the boundary between this app and encri, and why, is decided in encri's `AGENTS.md` —
-D112 to D118, D120 and D123 — and in encri-api's for the wire. It is not restated here. What this file
+What crosses the boundary between this app and encri, and why, is decided in encri's decision records —
+D112 to D118, D120 and D123 — and in encri-api's for the wire. It is not restated here. What this repository
 owns is the app.
 
-## Status
+## Relationship to the other repositories
 
-**Scaffolded, and the first screen works (2026-10-23).** It connects to encri, asks the user to let it
-in on encri's own screen, unlocks the vault on encri's unlock screen, lists the vault a folder at a time,
-and opens a document with another app through a handoff (F2). Since then it has a settings screen
-with a switch for screenshots (F3) and one for previews (F4), and it makes folders and renames, moves and
-deletes what is in the vault (F5). It copies files in from the system's picker and copies a document out to a
-place the user picks (F6), and shares a document through the share sheet (F7). A copy runs behind a foreground
-service, so it carries on when the user leaves the app (F8). It shows the third-party notices from the settings
-(F10). **Pushed to GitHub on 2026-10-30**, where CI built the release and agreed with the maintainer's build; its
-first release, 0.1.0 for Google Play's internal testing track, is waiting to be signed (F9). Since 2026-11-03 it also
-copies a folder in, with everything in it (F11).
-
-## Relationship to encri and encri-api
-
-- **Decisions here are numbered F1, F2, …**, and the others' are cited as *encri D120* and *encri-api
-  L12*. Three logs each numbered from 1 would make "D3" mean three things.
-- **About the app, this file wins.** About the contract, encri-api's does; about encri's internals,
-  encri's does, and this one links rather than restates.
+- **Decisions here are numbered F1, F2, …**, and the others' are cited as *encri D120*, *encri-api L12*,
+  *encri-images I3* and *encri-backup K1*. Five logs each numbered from 1 would make "D3" mean five things.
+- **About the app, this repository's decision records win.** About the contract, encri-api's do; about
+  encri's internals, encri's do, and these link rather than restate.
 - **The toolchain is encri's and encri-api's, version for version** (F1).
-
----
-
-## Repo conventions
-
-**Three files, and they do not overlap**, as in encri and encri-api. This one is the decision log.
-`ROADMAP.md` is what is next and in what order. `CHANGELOG.md` is what happened. When they disagree,
-**this file wins**.
-
-**Default branch is `master`**, a SystemHalted organization-wide policy. Do not rename it to `main`.
-
-**Commits are signed and Conventional**, with the repo-local config and the lefthook hooks encri-api
-records under its *Repo conventions*: `signing-preflight`, `ktlint` and `detekt` before a commit,
-`conventional-commit` on the message, and `verify-signatures` and `allUnitTests` before a push. Fresh
-clones bootstrap with `lefthook install`. Every rule a hook enforces is enforced again in
-`.github/workflows/`, because `--no-verify` always exists.
-
-**Every commit builds and passes its own tests, not just the branch tip** — encri's rule, for encri's
-reason: `verify-signatures` walks every commit in a push and `unit-tests` runs only at the tip.
-
-**Merge with a merge commit or a rebase, never a squash** (encri D7).
-
-**Regenerating the dependency verification metadata**, after adding or bumping anything, from an empty
-file over every task a workflow runs (encri D7, and encri-api's note on why the file must start empty):
-
-```sh
-rm gradle/verification-metadata.xml
-./gradlew --write-verification-metadata sha256 --refresh-dependencies --rerun-tasks \
-  ktlintCheck detekt allUnitTests koverVerify koverXmlReport assemble assembleDebugAndroidTest bundleRelease
-```
-
-The file covers encri-api's build as well, because a composite build is verified by the root build's
-file. Generated on 2026-10-23: 375 components, and every artifact it shares with encri's and encri-api's
-files has the same hash. The one component neither has is `kotlinx-coroutines-android`.
-
-**Changing what a user receives** means updating the lockfile, which STRICT mode demands:
-`./gradlew assembleRelease --write-locks`.
-
-## Local development environment
-
-The same machine as encri and encri-api, and encri's notes on its JDKs, phones, emulators and Waydroid
-apply. Two facts matter here:
-
-- **Set `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64`**, and never run two Gradle invocations at once:
-  the included encri-api build is one more set of outputs for them to fight over.
-- **encri-api must be checked out beside this one**, at `../encri-api`, or pointed at with
-  `-Pencri.api.dir=<path>`. Before a push it must be at the commit `config/encri-api.pin` names, which the
-  pre-push hook checks and CI fetches there (F9).
-
----
-
-## Decisions
-
-### F1 — An app over encri-client, built from framework views, with encri's toolchain
-*2026-10-23 · accepted; **flagged for veto on one point** (below)*
-
-**A separate application, `com.systemhalted.encri.files`**, signed with encri's key (encri D112, D115),
-that reaches the vault through `com.systemhalted.encri:encri-client` and nothing else. One module,
-`:app`. The application id is permanent from the first build a user installs, because encri keys a grant
-on it (encri D120).
-
-**The launcher name is "Encri Files", for now**, at the user's direction on 2026-10-23. It is a string
-resource and can change in any release without touching anything a user holds. The visible name was left
-open at encri's rename (encri D124), and a trademark search for encri is owed before anything ships.
-
-**Framework views, built in code, and no AndroidX.** encri's own screens are built the same way (encri
-D33 turned down `androidx.biometric` partly for the appcompat and fragment it would pull in), and here it
-buys three things. What a user receives is the client, its coroutines and the Kotlin standard library —
-`app/gradle.lockfile` lists exactly that. An auditor reading this app reads Android's API and nothing in
-between. And the common image libraries keep a disk cache by default, which encri D112 forbids for
-previews; with none on the classpath there is nothing to configure wrongly. A `ListView` with a framework
-row layout is enough for a folder.
-
-*Rejected:* AndroidX (RecyclerView, AppCompat, Lifecycle) — more to ship and to audit, for a screen a
-`ListView` serves. *Rejected:* Compose — a large runtime, in an app whose purpose includes being an
-example others lift code from.
-
-**The toolchain is encri-api's, version for version**: Gradle 9.7.1, AGP 9.4.1 with Kotlin 2.4.21 on
-the root classpath (encri D119), ktlint 1.8.0, detekt 1.23.8, Kover 0.9.9, JUnit 5.14.4 and Robolectric
-4.17; the same daemon pin, `.editorconfig`, detekt deltas, hooks and pinned action SHAs. minSdk 27,
-because encri cannot run below it (encri D14), and targetSdk 36.
-
-**encri-api is an included build until it is published**, beside this checkout or wherever
-`encri.api.dir` points, as encri builds it. The app names the client by the coordinates it will have on
-Maven Central, so publishing changes one line of the version catalog.
-
-**One coverage gate, on the whole module, with nothing excluded: 80% of lines**, plus 85% of changed
-lines in a pull request (encri D5's rule). The screens are kept thin and run under Robolectric at API 27
-and 36 against a stand-in for encri, so the number says what was tested rather than what was easy to
-test. encri exempts its own `:app`; this repository is an app whose screens are its subject, so it does
-not. Line rather than branch, as encri's `:provider` gate is.
-
-**The dependencies are pinned twice**: `gradle/verification-metadata.xml` by sha256 (encri D7) and
-`app/gradle.lockfile` for what ships, in STRICT mode (encri-api L10).
-
-**Flagged for veto:**
-
-1. **No AndroidX**, so every screen is framework views written by hand, and predictive back, insets and
-   results use the platform's APIs directly.
-
-### F2 — The first screen: one session for the process, reading alone, and nothing shown while locked
-*2026-10-23 · accepted; **flagged for veto on two points** (below); the second answered by the user the same
-day, who asked for a setting, which is F3*
-
-`FilesActivity` connects to encri, opens a session, lists the folder the user let it into, goes into
-folders and back out, and opens a document with another app. Seven choices decide how.
-
-**The session belongs to the process, not to the screen.** `FilesApplication` holds the `VaultLink` and
-the `Browser`, and a screen draws them. A handoff ends when the session that made it ends (encri D117),
-so a session owned by the Activity would close a document another app is showing whenever the phone
-turned. A session encri ends — the user turned this app out, turned access for other apps off, or
-encri's process went — is asked for again at once, so the screen says why there is no session instead
-of showing a vault that is gone. *Rejected:* `configChanges` to keep the Activity alive through a
-rotation, which covers rotation and nothing else.
-
-**It asks to read, and for nothing more.** Reading is all this version does, and the consent screen
-lists what an app asks for (encri D114); rights nothing exercises are rights a user has no reason to
-grant. Asking for more later costs nothing extra, because encri already asks again whenever this app is
-updated (encri D120, flagged there). **Superseded by F5 the same day**, once the app could do more than read:
-it asks for every right, because it uses every one.
-
-**While the vault is locked, the screen shows nothing of it**: no document, and no folder's name in the
-title. A user who locks the vault expects its names off the screen, as encri's file picker takes them off
-(encri D17). The place is kept in memory and an unlock lists it again, because the session outlives the
-lock (encri D120) and the names are already in this process.
-
-**`FLAG_SECURE` on the window**, for encri's reason (encri D8): the screen shows the names of what is in
-the vault, and a screenshot or the recents thumbnail would keep them outside it. **A setting since F3**, still
-blocked unless the user allows it.
-
-**Opening a document is a handoff and `ACTION_VIEW`**, with `FLAG_GRANT_READ_URI_PERMISSION`, through
-the platform's own resolver rather than a chooser, so a user can set a default app for a type. The URI
-names neither the document nor its id (encri D117). A remedy — *Ask encri*, *Unlock*, *Try again* — is a
-button the user presses: nothing here starts one of encri's screens on its own (encri D17's rule that a
-prompt starts with the user).
-
-**Folders first, then names as the phone's language sorts them**, with `java.text.Collator`. encri
-lists in its catalog's byte order, which puts `Zebra` before `apple`.
-
-**The folder is listed again whenever the screen comes to the front**, as well as when encri says it
-changed. encri's notice of a change is best effort (encri-api's `PROTOCOL.md`), and the first device run
-showed how far: a document saved through encri's own share screen arrived with no notice at all, which is
-encri's B111. A user coming back to the screen should not see what was there when they left it, and one
-listing per return is the price.
-
-**Smaller choices.** Back goes up a folder before it leaves: through `OnBackInvokedCallback` from API 33,
-opted into in the manifest so every ROM uses it rather than only API 36, and through `onBackPressed`
-below. A message encri meant for a developer never reaches the screen (encri-api's `PROTOCOL.md`).
-
-**Verified.** 57 test cases, 76 runs with the screens at both API 27 and 36 under Robolectric, and
-91% of lines. Removing the listing on return fails its test at both levels. **On the Galaxy A20 (API 30),
-against encri's debug build:** with no vault, encri answered *locked* and its own screen created one; the
-consent screen named the app from the system and listed reading alone; the whole vault was allowed; a note
-shared into encri's *Received* folder listed and opened in HTML Viewer, another app, which read its name and
-its content through the handoff; locking from the menu left no name on screen, and the unlock on encri's
-screen came straight back to *Received*; a rotation kept the place and the session; Up and back went up, and
-back at the top left. **Not run on a phone:** the API 33+ back callback, which Robolectric only registers;
-and the G6, the S9 and the S24.
-
-**Flagged for veto:**
-
-1. ~~**Reading alone**, so the update that adds writing asks the user again, as every update does today.~~
-   **Moot since F5**, which asks for every right.
-2. ~~**`FLAG_SECURE`**, which also stops a user taking a screenshot of their own folder.~~ **Answered by the
-   user the same day: a setting (F3).**
-
-### F3 — Screenshots are a setting, blocked until the user allows them
-*2026-10-23 · accepted, at the user's direction ("a toggle to allow or reject screenshots"); **flagged for veto
-on one point** (below)*
-
-**A switch in a settings screen of this app's own**, *Allow screenshots*, off by default. Off, every window this
-app draws carries `FLAG_SECURE`: Android blocks screenshots and screen recordings, keeps the app off a screen it
-is cast to, and shows a blank card among the recent apps. On, the flag is cleared and all of that is allowed.
-The screen says what turning it on costs — a screenshot is kept in the photos, outside the vault, where photo
-backups and other apps reach it — and that it changes this app alone: encri's own screens always block
-screenshots (encri D8), and this app cannot change that, nor should it.
-
-**Off by default**, which keeps F2's position for everyone who never opens the settings: the screen shows what
-is in the vault, and D8's reason for the flag is encri's whole stance. The user who wants a screenshot of their
-own folder turns it on, knowing what it costs.
-
-**Applied when a window is made and again whenever a screen comes to the front**, so a change made in settings
-reaches the browsing screen without a restart, and the first frame — the one the app switcher keeps — is
-already right. Every dialog this app shows will follow it too: a dialog is a window of its own, and the
-Activity's flag does not reach it (`followScreenshotSetting`).
-
-**Kept in the app's private preferences**, a single yes or no. The app is out of Android's backups
-(`allowBackup` is false), so the choice stays on the phone.
-
-*Rejected:* allowed by default, which would put the vault's names in every app-switcher picture for a user who
-never chose that. *Rejected:* a setting per screen, which is more to explain than it is worth.
-
-**Verified.** Under Robolectric at API 27 and 36: blocked by default, allowed once chosen, applied on return from
-settings — removing that re-apply fails its test at both levels — and the switch shows what was chosen. **On the
-A20:** `screencap` came back empty, then captured the folder list once the switch was on, then came back empty
-again once it was off.
-
-**Flagged for veto:**
-
-1. **Blocked by default.**
-
-### F4 — Previews: asked of encri per row, held in memory alone, dropped at every lock
-*2026-10-23 · accepted; **flagged for veto on one point** (below)*
-
-encri D112 set the rules and this builds them: a toggle of this app's own, on by default, saying it changes
-this app alone; previews encri encodes, so this app never decodes an original; and never a preview on the
-phone's storage. Four choices are this app's.
-
-**A row asks for its preview when it is drawn, and stops asking when it is scrolled away** (`ListView`'s
-recycler listener), and cancelling a request cancels encri's work (encri-api L12). So a long folder flung past
-asks for what is on screen and little else, which matters because encri makes two previews at a time behind
-a queue of 256 (encri D120). *Rejected:* encri D112's background pass, which is encri's to build and would
-fill a cache encri keeps; this app asks for what it shows.
-
-**Held in an `LruCache` of decoded pictures for the process**, an eighth of the heap and never more than
-16 MiB, keyed by the document's id, its modified time, its size and the size asked: a rewritten document is a
-new preview. Nothing is ever written to the phone's storage, which is why no image library is used (F1).
-
-**Dropped at every lock, when the session goes, and when the user turns previews off**, along with every
-request in flight; an answer to a request made before the drop is thrown away rather than shown. A locked vault
-shows nothing of itself (F2), and a picture is more of it than a name. A preview encri cannot make — the type
-is not one it previews, or the answer does not decode — is not asked for again until the next drop; one that
-merely failed is.
-
-**One square slot per row while previews are on**, so names line up, sized 48 dp, which encri fits each
-preview inside without enlarging it (encri D121). Off, the slot is gone and nothing is asked for.
-
-**Verified.** Under Robolectric and coroutine tests: asked at the row's size and held; not asked for a folder
-or a type encri cannot preview; nothing asked while off; dropped at a lock, and a request in flight then is
-cancelled and never shown — removing the drop at a lock fails both of those tests; a cancelled request
-cancels encri's; a rewritten document asked for again. 94% of lines. **On the A20:** a photo shared into
-encri from the Gallery app showed its preview in the folder, the text file beside it none, and turning previews
-off took every slot away.
-
-**Flagged for veto:**
-
-1. **No background pass of this app's own**, so the first look at a folder of photos waits for each preview.
-
-### F5 — Changes: every right asked for, a name taken refused, and a move made by going there
-*2026-10-23 · accepted; **flagged for veto on two points** (below). **Supersedes F2** on the rights asked for.*
-
-The app makes a folder, and renames, moves and deletes documents and folders. Each is one request to encri,
-which checks the right and the name itself and refuses what it will not do (encri D120); nothing here decides
-whether a change is allowed. Six choices are this app's.
-
-**It asks for every right, because it uses every one**: reading, renaming — which encri counts as writing —
-making folders, deleting and moving (`Asked.RIGHTS`). F2 asked to read alone while reading was all it did. A
-grant may hold fewer, one made for an earlier version or one the user narrowed, and then the changes it lacks
-are not offered and the menu offers *Allow more in encri*, which starts encri's consent screen for all five.
-encri ends the old session when it replaces a grant, and the app opens a new one at once (F2).
-
-**A name already taken is refused, never changed into another.** encri can pick a free name instead
-(encri-api's `NameConflict.PICK_FREE_NAME`); this app never asks it to, so a file is never silently given a name
-the user did not choose. The user is told something with that name is already there, and decides.
-
-**A move is made by going to the folder**: *Move* puts a bar at the foot of the screen naming what is moving,
-the user browses to where it goes, and *Move here* moves it. The button is off in the folder it is already in
-and inside a folder being moved into itself; encri's own cycle check is still the authority, and its refusal is
-said like any other. *Rejected:* a folder picker of its own, which would be a second browser to keep in step
-with the first.
-
-**A delete is confirmed by name, and says what it cannot undo**: that a folder goes with everything in it, that
-nothing here brings it back, and that a backup encri made before may still hold a copy (encri D95 keeps eight
-generations).
-
-**What encri says is put in the user's terms** (`Outcomes`), per change: *invalid* means a name that cannot be
-used for a rename, and a folder moved into itself for a move. encri's own message is for a developer and is
-never shown.
-
-**Every dialog follows the screenshot setting (F3)**, because a dialog is a window of its own and shows a name,
-and **no toast names a document**: a toast is drawn by the system, outside this app's windows, where the setting
-cannot reach. The name field is focused with the keyboard up and the name before its extension selected, so a
-rename is typing the new name.
-
-**Verified.** Under Robolectric at API 27 and 36 against a stand-in with a tree that changes: each change, a
-blank name refused before encri is asked, a rename to the same name asking nothing, a delete confirmed first, a
-move gone through and given up, a refusal in the user's terms, a read-only session offering nothing but *Allow
-more*, and dialogs under the screenshot setting. Removing the dialogs' screenshot setting, or the check that a
-folder is not moved into itself, each fails its tests. 95% of lines. **On the A20**, against encri: the read-only
-grant offered *Allow more in encri*, whose consent screen listed all five rights; once allowed, a folder was
-made, the note renamed by typing over its selected name, moved into the new folder from a bar at the foot, a
-second folder with a taken name refused in words, and the new folder deleted with the note inside it.
-
-**Flagged for veto:**
-
-1. **A taken name is refused**, where many file managers offer to keep both.
-2. **A delete cannot be undone here**: there is no bin.
-
-### F6 — Copies: through the system's picker, never a whole-looking file that is not, one at a time
-*2026-10-23 · accepted; **flagged for veto on two points** (below)*
-
-**Copying in** takes any number of files of any type from the system's picker (`ACTION_OPEN_DOCUMENT`) into the
-folder the user is looking at. **Copying out** takes one document from its long press to a place the user picks
-(`ACTION_CREATE_DOCUMENT`). Both go through the session's ordinary requests (encri-api L11), so they work with
-encri's file-picker access off. Nine choices are this app's.
-
-**A file is copied in as `(unfinished) <name>`, written, and only then renamed to its own name**, which is encri's
-own rule for a share (encri D118), with the same marker so a user meets one convention. encri saves a write only
-when the writer finishes (encri-api L11), so a copy that is stopped is abandoned by throwing out of the writer,
-never by returning early, and what it had made is deleted. One that cannot be deleted — the vault locked under it
-— keeps the name that says what it is, and the report counts it.
-
-**A name already in the folder is refused**, F5's rule: checked against a fresh listing before anything is written,
-and by encri again at the rename, where a name taken in between removes the copy. Two picked files of one name:
-the second is refused.
-
-**A copy in that will not fit is refused before anything is written**, when the sizes the files' apps give add up
-to more than encri says it can take (encri D118's rule). A file whose app gives no size is not counted, and encri's
-own `NO_SPACE` still stops the copy if it runs out.
-
-**A file keeps the date its app gives it**, set after the rename, because encri's rename stamps the time it happened
-(its `Catalog.rename`) — which the first device run found by showing *just now* for a file from that morning. Only
-the last change is kept: a picker says nothing of when a file was made.
-
-**Before anything leaves, a copy out says what it costs**: the copy is not encrypted, the app keeping the place
-chosen can read it and so can whatever it backs up to, and deleting the document later does not delete the copy
-(encri D123). Every time — there is no *don't ask again*. Then the place is opened asking for truncation and
-settling for less (`wt`, then `w`, encri D78), and after the close its length is asked again for three seconds
-before a short answer is believed (encri B102). A copy out that fails leaves the file the picker made, empty or
-part-written, and says so rather than deleting it, for encri D78's reason: the picker may have handed back a file
-that was there before.
-
-**Another app's files are reached through an unstable client**, as encri reaches them (its B100), so a cloud app
-that dies mid-copy is a copy that failed rather than the death of this app, its session and every handoff another
-app is reading. `ForeignDocumentsTest` holds every source to it.
-
-**One copy at a time, for the process, in a bar at the foot of the screen**: how far it has got, with Stop, and
-then how it ended, until the user presses OK. Names appear in the bar only while the vault is open and unlocked
-(F2): an ending over a locked vault is counted, and promises the names after an unlock. Each file refused on its own
-is named with why; the ones a stop or a lock never reached are counted once, with the reason. A copy in that brought
-anything says the originals are still where they were, unencrypted, because a user may believe the file is now
-protected.
-
-**While a copy runs, back at the top sends the app to the background instead of closing it.** A file a picker hands
-over is readable while the task of the activity that received it is alive (Android's own `FileProvider`
-documentation: *"Permissions granted in an Intent remain in effect while the stack of the receiving Activity is
-active"*), so closing the task mid-copy could leave the rest unreadable. From API 31 back at the top does that anyway;
-below it, this keeps it so. Recalled from the documentation, and not measured.
-
-**64 KiB at a time**, which no FUSE request an AppFuse bridge carries can fail on (encri D88), whichever side another
-app's provider is on.
-
-*Rejected:* taking a persistable grant on each picked file so the copy survives its task — it writes the files'
-URIs into the system's grant record until released, where keeping the task alive needs no record at all.
-*Rejected:* a free name for a taken one (F5). *Rejected:* deleting a part-written copy out (encri D78).
-*Rejected:* staging a copy anywhere on the phone's storage — nothing of the vault is written outside it.
-
-**Not built:** copying a folder ~~in or~~ out (*a folder in since F11*), copying several documents out at once, and
-choosing what happens to a taken name. Each needs a choice of its own, and none is needed to move one file either way.
-
-**Verified.** Under Robolectric and coroutine tests, against stand-ins for encri and for the apps the picker reaches,
-and against a real `ContentProvider` for the resolver: a file arriving whole with its date; several in turn; a taken
-name refused before and during a copy; no room; a file that will not open, that stops part way, or has no name; a
-full vault ending the copy; a stop keeping only what finished; a copy that cannot be removed counted; and a copy out
-whole, refused by encri, cut off by encri, refused by its place at the open, the write and the close, stopped, and
-believed only once its length agrees. 217 runs, 94.8% of lines. A stop that returned from the writer instead of
-throwing fails two of them; back at the top closing the app during a copy fails one. **On the Galaxy A20 (API 30),
-against encri:** three files chosen with the picker's *Select all*, two copied, the third refused in words for a taken
-name, and a file from March 2025 keeping its date; a 400 MB file copied in and back out, the SHA-256 of the copy out
-the same as the original's; and Stop pressed a second into a copy left nothing in the folder and said so.
-**Not run on a phone:** back at the top during a copy, and the S9, the G6 and the S24.
-
-**Flagged for veto:**
-
-1. ~~**No foreground service.** A copy runs in the app's process, so Android may pause it (from API 34) or stop it
-   while another app is in front; the bar says to keep the app open, and a copy that is stopped leaves its
-   unfinished name. A service would need `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` and a notification, the
-   first permissions this app would declare.~~ **Answered by the user the same day, who asked for one: F8.**
-2. **A copy out is confirmed every time**, with no way to stop being asked.
-
-### F7 — Sharing: a handoff through the share sheet, said first, and never back to encri
-*2026-10-23 · accepted; **flagged for veto on one point** (below)*
-
-A document's long press offers *Share* first, for a document and not a folder; reading is all it needs. It is encri
-D118's sharing out, which that decision gave to the file manager. Four choices are this app's.
-
-**Before the share sheet opens, the screen says what a share costs**: the app chosen gets what is in the document,
-not encrypted, and can keep a copy that deleting the document does not delete; and it reads from the vault, so if it
-waits to read until after the vault locks or this app is closed, it finds nothing (encri D117's lock rule, which encri
-D118 said the file manager's share must say). Every time, as a copy out is (F6).
-
-**A handoff, sent with `ACTION_SEND` through `Intent.createChooser`**, the URI in the stream extra and in the clip,
-with the read grant, so the grant reaches whichever app is picked (encri D118). The clip's label is empty, so the
-document's name goes only where an app asks encri's handoff provider for it — the share sheet does, to draw its
-preview, as encri D118 recorded.
-
-**encri is left out of the share sheet.** Its share screen refuses a URI on its own authorities (encri D118), so a
-vault document offered back to it is a choice certain to fail — found on the A20, where choosing it answered *There is
-nothing here encri can save*. Its components are excluded by asking the package manager which of encri's
-(`Encri.PACKAGE`) activities would take the share, so this holds whatever encri names them, and nothing else is left
-out. To put a document in another folder of the vault, a move does it (F5).
-
-**What Android keeps of a share is not repeated here.** The share sheet records the app chosen and the type in the
-phone's usage history (encri D118, which says so on encri's privacy screen); the user is choosing an app on that screen,
-which is the act the record describes.
-
-*Rejected:* a decrypted copy shared through a `FileProvider` of this app's own, which writes the document to the
-phone's storage. *Rejected:* revoking the handoff once the share sheet closes, which nothing reports and which would
-break an app that reads when it sends rather than when it is chosen. *Not built:* several documents at once, which
-needs a selection the list does not have yet, and a folder.
-
-**Verified.** Under Robolectric at API 27 and 36: a document offers a share first and a folder none; nothing is handed
-over before the confirmation; the share sheet carries a handoff in the stream and the clip with the grant; encri's
-component is left out and another app's is not; a refused handoff opens nothing. 231 runs, 94.9% of lines. **On the A20,
-against encri:** the share sheet named the document, read through the handoff; Nextcloud uploaded it to the test
-server, whose copy has the original's SHA-256; and once encri was left out, the sheet offered everything it had but
-encri.
-
-**Flagged for veto:**
-
-1. **Every share is confirmed**, with no way to stop being asked.
-
-### F8 — A copy runs behind a `dataSync` foreground service, which holds the picker's grants and runs no copy
-*2026-10-23 · accepted, at the user's direction ("add a foreground service to the files app so the user isn't stuck
-on the app screen while running long operations"); answers F6's first flag; **flagged for veto on two points** (below)*
-
-**`TransferService` keeps the process in the foreground for as long as a copy runs, and runs no copy itself.**
-`Transfers` still does, in the application (F6). So nothing about how a copy is made changes: the service is what
-stops Android pausing the process (from API 34) or stopping it for being in the background, and it is what holds the
-picker's grants. It follows `Transfers.state`: started when a copy starts, it goes to the foreground at once, and when
-the copy ends it stops itself with the latest start's id, which is the one `stopSelf(int)` has to name. Not exported,
-binds to nothing, and `START_NOT_STICKY`, because a restarted service would have no copy to hold.
-
-**The grants ride in its start intent.** A file the picker handed over is readable while the task of the screen that
-received it is alive. Handed to a service as `ClipData` with the grant flags, the grant lasts until the service stops
-for that start, which `Service`'s documentation says and encri measured for its own share screen (encri D118): read
-for a copy in, and read and write for a copy out, whose length is read back after the close (encri B102). So a copy
-goes on after its screen is closed or swiped away from the recent apps. F6's *back at the top keeps the app* stays,
-for the case below where the platform refuses the service.
-
-**The first permissions this app declares, three for one capability.** `FOREGROUND_SERVICE` (API 28) and
-`FOREGROUND_SERVICE_DATA_SYNC` (API 34) are both install-time and both needed by an app targeting 36, the second a
-declaration of its own and not a successor (encri D78 read the same). `POST_NOTIFICATIONS` is a runtime permission
-from API 33, asked for when a copy starts — after the picker has closed and the copy is under way, so the question
-does not hold the copy up — and again at the next copy until answered, which Android stops showing after a second
-refusal. Refused, the copy still carries on; only its notification is not drawn.
-
-**What the notifications say: counts, never a name.** A notification is read off a locked phone by whoever holds it,
-and the names of what is in the vault are what F2 keeps off a locked screen. The ongoing one says which file of how
-many and how much, with a progress bar and *Stop*; *Stop* reaches the copy at its next block, as the bar's does.
-It is told at most once a second, because Android drops a package's notifications beyond a few a second and a fast
-copy reports a mebibyte at a time. The ending is said as a count — *Copied 3 files into the vault*, *A document was
-not copied out of the vault* — with *Open Encri Files to see what happened* when something was not whole. Both are
-private on the lock screen, in one channel, *Copies*, at low importance, so a copy makes no sound and silencing it
-silences nothing else. Tapping either opens the browsing screen, whose bar has the rest.
-
-**The ending is not said while a screen of this app is in front**, because the bar already says it, and the
-notification that said it away from the screen is taken back when a screen comes to the front.
-
-**A refusal is said, not hidden.** From API 31 Android refuses a foreground service to an app in the background. A
-screen choosing files is never in the background, so this is not expected to happen; if it does, the copy runs as it
-did before (F6), and the bar says to keep the app open rather than that it can be left. The bar tells which from
-`Transfer.Running.held`.
-
-**From API 35 a `dataSync` service has six hours a day**, and the platform's `onTimeout` stops the copy at its next
-block. At the rates measured below that is a terabyte or more.
-
-*Rejected:* a user-initiated data transfer job (`JobInfo.Builder.setUserInitiated`, API 34), which Android's
-documentation points to for transfers a user starts and which may one day replace `dataSync`. It needs API 34 against
-a floor of 27, and a network constraint, which a copy between this phone's storage and the vault does not have.
-*Rejected:* WorkManager, which is AndroidX (F1) and, for this, a foreground service underneath. *Rejected:*
-`shortService` (API 34), whose three minutes a large copy outlasts. *Rejected:* a service that runs the copy itself,
-which would move the copy engine for nothing the service needs. *Rejected:* `setForegroundServiceBehavior` to show the
-notification at once: from API 31 Android holds a new foreground service's notification back for up to ten seconds,
-so a short copy flashes nothing.
-
-**Verified.** Under Robolectric at API 27 and 36: the service goes to the foreground with a notification that counts
-and names nothing, says how a copy ended away from the screen and not in front of it, goes to the foreground and stops
-at once for a copy already ended, stops with the latest start's id, takes a stop and a spent budget to the copy, and
-is handed the grants each direction needs; the notice counts, offers *Stop* as a service intent, is told at most once
-a second, words each ending without a name, and posts nothing with notifications refused; the screen starts the
-service, asks for notifications from API 33 and not below, and takes back the ending. 285 runs, 95.3% of lines. Eight
-mutations each fail the test written for them, at both levels. **On the Galaxy A20 (API 30), against encri:** a 2 GB
-file copied in with the app sent to the Home screen straight after, the notification counting up to the end and the
-service gone once it said *Copied 1 file into the vault*, which opening the app took back; the same document copied
-out with the app's task removed two seconds in (`am stack remove`, which is what swiping it from the recent apps does),
-carrying on in the same process to the end, its SHA-256 the same as the original's; and *Stop* in the notification
-about 700 MB into a copy left nothing in the vault and said
-*Nothing was copied into the vault*. **Not run on a phone:** the API 33+ notification question, API 34's type
-permission and API 35's budget, which the S24 would take; and the G6 and the S9.
-
-**Flagged for veto:**
-
-1. **Notifications asked for when a copy starts**, rather than never — the copy runs either way — or at first launch.
-2. **No ending said while a screen of this app is in front.**
-
-### F9 — A release is built from a tag against a pinned encri-api, twice, and signed from a kit of its own
-*2026-10-29 · accepted, at the user's direction: Encri Files' first release goes to Google Play's internal testing
-track, and is checked as encri D116 has it, by GitHub's CI building the tag and the maintainer's build agreeing
-("Push; CI builds the tag"). encri D136 gave both apps one first release; encri's own went to the internal track the
-same day. Built in parts, each in a commit of its own, as below.*
-
-**encri-api at the commit `config/encri-api.pin` names, in every build but a developer's.** encri-api is an input to
-every APK (F1), and CI checked out its moving `master`, so a tag built twice a week apart could be built against two
-different libraries, and nothing in the tree said which. `scripts/ci/encri-api` is encri's script of the same name
-(encri B108, D126): `fetch` clones the pinned commit, `check` says whether `../encri-api` is at it with nothing
-uncommitted, and the pre-push hook runs `check`, so a push carries a pin the hook's tests ran against. CI fetches the
-pin into `../encri-api`, the sibling `settings.gradle.kts` includes by default, and no longer passes
-`-Pencri.api.dir`. The pin starts at `c27f139`, the commit encri's first release was built against (encri-api L22),
-which lists this app in the registry under the app signing key and puts that key in `EncriTrust.RELEASE_CERTIFICATES`.
-*Measured:* the suite, 285 runs, and the minified release built against it with no change here; `fetch` from GitHub
-put a clone at the pin; `check` on a clone one commit back failed with exit 1.
-
-**The Gradle wrapper is held to what gradle.org publishes.** A release's two builds share one Gradle distribution, so an
-altered one would run inside both and both would agree (encri B115). `gradle-wrapper.properties` now carries
-`distributionSha256Sum`, the wrapper refuses a distribution that does not match it, and
-`scripts/ci/gradle-wrapper-check`, encri's, holds the jar and that sum to the checksums gradle.org publishes for the
-version, first in `ci.yml`. The jar and the sum are encri's, for the same Gradle 9.7.1. *Measured:* the check failed
-before the sum was added, naming it, and passes after.
-
-**A release is built twice, by GitHub's CI from the tag and by the maintainer, and must come out the same** (encri
-D116 as written, which encri D136 keeps for this app). `scripts/release/reproduce.sh <commit>` and
-`compare-builds.py` are encri's, carried here because this repository is the one a stranger can read: they are what
-lets anyone rebuild a tag and hold the published APK to it, which is D115's second row and a claim encri's closed
-source cannot make for itself. The two builds differ in path, umask, timezone, locale and Gradle home, share the
-pinned Gradle and every pinned dependency, fetch encri-api at the tag's pin beside each clone, and keep the unsigned
-APK and bundle as `build/reproducible/<commit>/encri-files-<commit>-unsigned.*` with their `SHA256SUMS` and a
-provenance naming both commits. It refuses a commit that predates the pin, the wrapper's checksum or the notices
-(F10). `.github/workflows/reproducible.yml`, encri's too, runs it on every `v*` tag, weekly and by hand, and keeps
-what it built for 90 days; the maintainer's run must give the same SHA-256s before the kit is made. Nothing in
-`app/build.gradle.kts` changed for it: this app ships no native library, so encri's `keepDebugSymbols` has nothing to
-keep, and `dependenciesInfo.includeInApk = false` was there from F1. *Measured, 2026-10-29:* `27648e2` built the same
-twice, APK `568abcc2…`, bundle `cdb0983e…`, against encri-api `c27f139`.
-
-**Signed from a kit of this repository's own, on the key machine** (encri D141). `scripts/release/kit.sh`, `sign.sh`
-and `bundletool.init.gradle.kts` are encri's, for this app's files: the kit packs the reproduced build with
-apksigner and bundletool's jars, each pinned, and rehearses itself before it is kept; on the key machine `sign.sh`
-takes the directory holding the keystores, asks for each password at a terminal, signs the APK with the app signing
-key and the bundle with code transparency and then the upload key, holds both to the build, and keeps nothing signed
-by a key `config/release-certificates` does not name. `sign.sh --verify`, here, checks what comes back before the
-upload. The keystores are found as `encri-app-signing.p12` (`app-signing`) and `encri-transparency.p12`
-(`transparency`), the same two keys as encri's (encri D140), and `encri-files-upload.p12` (`encri-files-upload`);
-`ENCRI_UPLOAD_KEYSTORE` and `ENCRI_UPLOAD_KEY_ALIAS` name another, as for the other two.
-
-**The upload key is this app's own**, `59:70:D4:B7…`, which Play takes from 7:03 PM on 2026-10-30 by the Console's
-clock, 23:03:47 UTC, when the reset requested on 2026-10-28 takes effect (encri D140). ~~Until then Play takes only
-encri's `46:0C:90:61…` for this app, so no bundle this kit signs can be uploaded before that time, and the release
-waits for it rather than being signed with encri's key and leaving the reset unused.~~ Until then Play takes no upload
-for this app at all, by either key, as was measured below.
-
-**On Play, the bundle needs the listing's automatic protection off** (encri D144): the bundle carries code
-transparency, which Play refuses beside it. **The signed APK goes to a GitHub release** (encri D142), and not before
-the trademark search encri D136 asks for before anything is published beyond testers.
-
-*Flagged for veto:* **a kit of this app's own rather than one kit for both apps**, which encri D141 left open.
-This repository is the one a stranger reads, so it carries everything its release is built and signed with; a kit
-names one app's files and expects one app's upload key; and encri's measured scripts are left as they are. What it
-costs: `reproduce.sh`, `compare-builds.py`, `kit.sh` and `sign.sh` are now in two repositories, and a fix to one has
-to be made to the other, as encri's B138 already is in both.
-
-**The minified build is walked through before it is signed** (encri D140), because no record showed a release build of
-this app had ever been installed: R8's usual failures, a class reached by reflection, would reach every tester at
-first launch. *Done 2026-10-29 on the API 34 emulator with `a2ef986`*, which `reproduce.sh` built the same twice (APK
-`079033c4…`, bundle `fa4750e7…`), signed with the debug key and installed fresh beside encri's own walked-through
-build: Encri Files connected, was let in through encri's consent screen (which, the copy being debug-signed, said an
-app of this name is reviewed but *this one is signed with a different key*, as it should), listed the vault, opened
-the settings and the notices, asked for notifications when the first copy started (API 33's question, which had never
-run on a device), copied a 5 MiB file in with its date and out again with the same SHA-256, made, renamed and deleted a
-folder, moved a document into it, shared one (encri not among the targets), opened one in HTML Viewer, showed a
-picture's preview, and locked and unlocked through encri. Nothing crashed, and logcat held no class, method or field
-R8 had removed. It found one thing, F10's row drawn as an explanation; the build after the fix was installed again and
-the settings looked at.
-
-*Measured, 2026-10-29,* with a kit of `27648e2` (21 MB) and three RSA-4096 scratch keystores under the names above: the
-kit rehearsed itself; a real signing through a pseudo-terminal asked three questions, one per tool; with keys the kit
-did not expect it failed with exit 1 and left no `signed/`; Ctrl-C at the third question, the terminal closed at the
-second or the third, SIGTERM to `sign.sh` at the second, and jarsigner killed at its question each ended with no
-`signed/` and no process left; and a kit expecting the scratch keys signed, its files the build but for alignment
-padding (all 19 entries) and signing's 4 bundle entries, and `--verify` passed them with that kit and failed them with
-the real one. *Seen once and not reproduced:* a `signed/` left holding the signed APK alone, when the terminal,
-`sign.sh` and bundletool were each sent SIGTERM at the same moment; `--verify` refuses such a directory for want of
-`SIGNED.txt`, and a second signing refuses to write over it.
-
-*Measured, 2026-10-30, while the reset was pending,* at the user's direction to try an upload before the new key was
-valid. A one-off kit of the same build, made from a scratch clone at `v0.1.0` whose `config/release-certificates` named
-encri's upload key and nothing else differed, signed the bundle with that key and passed `--verify`; Play refused it
-as signed with the wrong key, expecting SHA-1 `2C:EC:C9:1C…`, which the user's keytool showed is this app's own. So
-Play stopped taking encri's key for this app when it approved the reset, not at the time it gave. This kit then signed
-with this app's key and passed `--verify`, and Play refused that too, as "an upload certificate that is not yet valid
-because it has been recently reset", until 23:03:47 UTC. While an upload key reset is pending, nothing can be uploaded.
-The two kits' APKs came out the same byte for byte (`2fadc5ea…`), because the upload key signs the bundle alone. *Seen
-on the key machine:* `ENCRI_UPLOAD_KEYSTORE` and `ENCRI_UPLOAD_KEY_ALIAS`, exported for the one-off kit, were still
-set at the next signing, which opened encri's keystore and refused the password typed for this app's. A name given on
-the command line alone is safer than one exported, and the line `sign.sh` prints for the upload key names the alias it
-is about to use.
-
-*Measured, 2026-10-30,* the release itself: `6644860` built the same twice here (APK `7d447874…`, bundle `857967e6…`),
-was pushed, and `reproducible.yml`, run by hand on `master` at that commit, built the same two files on GitHub's runner
-with another JDK (Adoptium 21.0.13 to this machine's Debian 21.0.12.1) and another kernel; the kit of it, 21 MB,
-rehearsed itself. The repository's `master` was already held by a ruleset, *Protect default branch*: no deletion, no
-force push, signed commits, and no one who may bypass it. The first push replaced GitHub's *Initial commit*, a
-LICENSE alone, so the ruleset was turned off for that one push at the user's word and turned back on unchanged.
-
-### F10 — The third-party notices: written by hand, opened from the settings, and held to the build
-*2026-10-29 · accepted; owed before any APK leaves this machine, the internal testing track included (F9), for encri
-D138's reason. Nothing new is flagged: each choice is encri D138's, which the user confirmed, or F3's.*
-
-**What is owed.** Six modules ship (`app/gradle.lockfile`), besides encri-api's own. The Apache License asks for its
-text to go with the app and for any NOTICE file to be reproduced, and kotlinx.coroutines has one
-(`license/NOTICE.txt` at `1.10.2`). The Kotlin standard library carries code from ThreeTen-Backport, whose 3-clause
-BSD licence asks for its notice in a binary distribution, and from Boost (encri D138 read Kotlin's
-`license/README.md` at `v2.4.21`, the version that ships here too). None of the six jars holds a licence file, so
-without a screen the APK carries none of it.
-
-**Written by hand, as encri's are.** `app/src/main/assets/third-party-notices.txt` takes encri's entry for the Kotlin
-standard library and its Apache License text word for word, the same versions having been read for it; the Apache
-text was compared again, word for word, with kotlinx.coroutines' `LICENSE.txt`. The other two were read at the
-versions that ship: JetBrains' annotations at `23.0.0`, whose licence's appendix gives *Copyright 2000-2016 JetBrains
-s.r.o.* (encri ships 13.0, which says 2000-2012), and kotlinx.coroutines at `1.10.2`, with its NOTICE, whose border
-of `=` is the one change, compared word for word. One paragraph to a line, as encri D138 has it, and `NoticeText` is
-encri's, drawing `# ` and `## ` as headings.
-
-**Held to the build by `:app:checkThirdPartyNotices`**, encri's gate without its list of notices owed, since this
-app owes none: every module a variant's runtime classpath resolves to is named in the asset by a line holding only
-`group:artifact:version`, and the asset names nothing else. By version, so a bump fails until the new release has
-been read. encri-api's modules are this project's own. It runs in `check`, the pre-push hook and `ci.yml`.
-
-**Opened from the settings**, as a row below the two switches, because the menu offers *Settings* in every state and a
-licence's terms do not depend on there being a vault. The row is drawn in the switches' size and colour and is as tall
-as a touch target: walking the release build through showed a plain `TextView` there in the explanations' grey, which
-read as one more explanation rather than something to press. The screen follows the screenshot setting as every window
-here does (F3), where encri's notices are always secure: here the rule is the setting, not every window. Not exported;
-the text is selectable.
-
-*Verified:* under Robolectric at API 27 and 36, the screen shows the whole asset as `noticeText` draws it, to the end
-of the Apache License and with kotlinx.coroutines' NOTICE; it blocks screenshots until they are allowed; no other
-app can open it; up leaves it; and the settings row opens it, drawn as the switches are and not as the explanations,
-which fails with the colour taken out. The gate passes on both variants, which carry the same six modules, and fails
-three ways: a module's line removed, a version moved (both lines named), and a module named that does not ship.
-
----
-
-### F11 — A folder copied in: walked whole first, named only when whole, and its grant handed on as a prefix
-*2026-11-03 · accepted, at the user's direction ("allow encri-files to import directories, not just files");
-**flagged for veto on three points** (below)*
-
-**Copy a folder in**, beside *Copy files in*, takes one folder from the system's picker (`ACTION_OPEN_DOCUMENT_TREE`)
-and copies it, the folders in it and all their files into the folder the user is looking at, through the session's
-ordinary requests (encri-api L11) as F6's copies are. Nothing in encri or encri-api changed: `VaultSession.createFolder`
-gained the choice of a free name the client's own already had. Nine choices are this app's.
-
-**The folder is walked whole before anything is made.** Every folder in it is listed first, so the copy knows how many
-files there are, refuses at once when the vault has no room for them (F6's rule), and refuses a name already taken
-before a byte is written. Meanwhile the bar says *Looking through the folder…*, and Stop ends the walk at the next
-folder with nothing made.
-
-**What cannot be listed whole is said, never skipped**, which is the folder's form of encri's rule that a failed read
-is never a short one. A folder whose app refuses to list it, dies part way through the rows, reports an error beside
-them (`EXTRA_ERROR`) or gives a row no document id is reported by its path, and so is one its app still says it is
-loading (`EXTRA_LOADING`) after half a minute of asking again: a cloud app answers at once with what it has and fetches
-the rest, so its first answer is not all there is.
-
-**Named only when whole.** The folder is made as `(unfinished) <name>`, F6's marker, taking a free name so a copy left
-unfinished before does not stand in the way; filled; and renamed to its own name only once every file in it has
-arrived. One that not everything reached keeps the marker with what did, one that nothing reached is removed again, and
-one that cannot be removed (the vault locked under it) is said to be left. Unlike a file (F6), a folder whose own name
-is taken by the time it is whole keeps what arrived under the marker rather than being thrown away, because it holds
-copies that are whole. Each file inside still goes through F6's own marker and rename, so a folder renamed by hand never
-holds a file that reads as whole and is not. Folders keep the dates their app gives, set last, and the folder chosen
-after its rename, which encri stamps.
-
-**A name taken inside is refused, as F5 and F6 refuse one.** Two files, or a file and a folder, of one name in one
-folder, which a cloud app can hold: the second is reported by its path. A folder inside that cannot be made is reported
-once, not file by file. Once a copy has had to stop (stopped, locked, out of room), every file it did not reach is
-counted, as F6 counts them, in folders not yet made too.
-
-**A folder inside itself is not entered again, nor one more than 64 below the one chosen.** The first is a document id
-met again among a folder's own parents; the second guards an app whose ids are paths, where a link back up makes each
-turn a new id, as a terminal app's home folder can. Either would otherwise copy the same files over and over until
-the vault was full. Neither has been seen.
-
-**The grant goes to the service as a prefix.** F8 hands the picker's grants to `TransferService` in its start intent. A
-folder's grant reaches what is in it only as a prefix of its tree URI, which is how the picker gave it, so the start
-intent carries `FLAG_GRANT_PREFIX_URI_PERMISSION` for a tree; without it the service holds the folder's own URI and
-nothing under it. **Measured both ways** on the A20 (below).
-
-**No persistable grant is taken**, although the system's confirmation says *"This will let Encri Files access current
-and future content stored in <folder>"*. The access ends with the copy's service and the task, and nothing is written
-to the system's record of kept grants: F6's reason, for a folder.
-
-**Names only over an unlocked vault, counts only in the notification.** The bar says *Copied “Trip” into the vault,
-with 37 files*, or how many of how many, each folder and file not copied by its path (ten, then a count), and where
-what arrived is. Over a locked vault neither the folder nor anything in it is named (F2), and the notification never
-names either (F8): *Copied a folder with 37 files into the vault*. A folder's own ending (a name taken, the vault
-locked) is said of the folder, never counted as files.
-
-*Rejected:* copying as the walk goes, which starts sooner but can neither refuse for room nor give a total until it has
-made a partial folder. *Rejected:* merging into a folder of the same name already there, which is the choice of what
-happens to a taken name that F6 put off, made for every file inside at once. *Rejected:* a folder that did not all
-arrive taking its own name with the missing files listed in the bar, which a user who presses OK without reading would
-take for a whole copy. *Rejected:* taking the folder's persistable grant for the copy and releasing it after, which
-writes the system's record and leaves it written if the process dies; the prefix needs no record. *Rejected:*
-`EXTRA_INITIAL_URI`, since nothing on this screen knows where the user's folder is.
-
-**Not built:** copying a folder out, several folders in one choice (the picker hands back one), and files and folders
-in one choice.
-
-**From API 30 the picker refuses** the root of the phone's storage, the Download folder itself, `Android/data` and
-`Android/obb`. A folder inside any of them can be chosen.
-
-**Verified.** Under Robolectric and coroutine tests, against stand-ins for encri and for the app keeping the folder, and
-against a real `ContentProvider` serving a tree for the resolver: a folder arriving whole, nested and dated, made
-unfinished and named last; empty; beside an earlier unfinished copy; still loading and then listed; refused for a taken
-name, no room, a folder that will not list, no name, a vault folder that cannot be listed, encri refusing the folder,
-and a stop during the walk; and left not whole for a folder inside that will not list, one still loading after the
-asks, one inside itself, one 65 deep, two names alike, a folder named as a file beside it, a folder encri will not make,
-a nameless folder, a file that will not be read, a stop part way and before anything arrived, a vault locking under it,
-and its own name taken by the end. 358 runs, 96.1% of lines. Eight lines reverted one at a time each fail the tests that
-guard them: the loading asks, the loop guard, the depth guard, naming only when whole, the prefix flag, a loading
-listing and a row with no id in the resolver, and a folder's own ending said of the folder.
-
-**On the Galaxy A20 (API 30), against encri:** a folder of a 1 GB file, a 5 MB one, three small ones, three folders
-inside (one empty) and a file dated March 2025, copied with the app's task removed (`am stack remove`) four seconds in:
-*Copied a folder with 5 files into the vault*, every folder and file there at its size, the empty folder too, and the
-March 2025 date kept. **The control**, the same build without the prefix flag and the same removal: *Copied 2 of 5 files
-from a folder into the vault*, the three files inside its folders, read after the task was gone, named as not handed
-over, and the rest left in `(unfinished) F11 trip`. The refusal itself was not in the log: the provider's exception goes
-back to the app over binder. **Not compared:** the copies' bytes with the originals', which F6 did by SHA-256 for the
-same write path. **Not run:** a cloud app's folder (a real `EXTRA_LOADING`), a loop or a depth over 64 on a real app,
-a phone above API 30, the S9, the G6 and the S24.
-
-*Seen on the A20:* the picker's list takes no taps, and its arrow keys stay on *Create new folder* under *Can't use this
-folder*; Tab moves into the list, and the picker opens next time where it was last used.
-
-**Flagged for veto:**
-
-1. **A folder that did not arrive whole keeps `(unfinished)` in its name** until the user renames it, even when one file
-   of thousands is what is missing.
-2. **A folder whose name is taken where it is going is refused**, not merged into nor copied beside under a free name.
-3. **A copy stops at 64 folders deep**, and waits half a minute for a folder its app says it is still loading.
-
-## Open questions
-
-- **The visible name.** "Encri Files" is for now (F1).
-- **Whether handoffs should be revoked sooner** than encri ends them. Every document opened or shared mints
-  one, and each lasts until the vault locks or the session ends (encri D117). Revoking the previous one when
-  another is made would break a viewer the user went back to, and an app a share reached that reads when it
-  sends rather than when it is chosen (F7).
-
-## Build order
-
-1. ~~Scaffold and the first screen.~~ **Done 2026-10-23** — F1, F2.
-2. Everything after is in `ROADMAP.md`.
+- **B is encri's bug numbering** (*encri B111*), and **S1 to S4 are severities**, never decision numbers.
+- **encri-api is built from source at the commit `config/encri-api.pin` names**, in every build but a developer's:
+  `ci.yml`, `reproducible.yml` and `reproduce.sh` fetch it with `scripts/ci/encri-api`, and the pre-push hook refuses
+  a push while `../encri-api` is anywhere else (F9, encri D126). A developer's build includes `../encri-api` as it
+  stands, or wherever `-Pencri.api.dir` points (F1).
+- **The siblings**, each a repository with a decision log of its own: `../encri-core` (encri itself, D1, …),
+  `../encri-api` (the contract, the client and the registry, L1, …), `../encri-images` (Encri Images, the gallery,
+  I1, …) and `../encri-backup` (Encri Backup, the scheduled backup, K1, …). In the suite superproject they sit side
+  by side, which is where this build finds `../encri-api`; the suite's `docs/documentation.md` sets how each one is
+  documented.
+
+## How the project's knowledge is laid out
+
+| Level | Where | Loads | Holds |
+|---|---|---|---|
+| 0 | `AGENTS.md` | every session | constraints, invariants, hazards, conventions, this map |
+| 1 | `.claude/rules/<component>.md` | when a file matching its `paths:` is read or edited (other tools: read it by hand) | one component's rules, traps, measurements and decisions |
+| 2 | `docs/decisions/INDEX.md` | on demand | one line per decision: date, title, status, the briefs that cite it |
+| 3 | `docs/decisions/Fnnn-<slug>.md` | on demand | the full decision record |
+
+**Finding a decision.** `AGENTS.md F5` or `F5`, in code or older documents, means `docs/decisions/F005-*.md`: every
+record lived in this file before 2026-11-11 (F12). Later decisions amend earlier ones in place, and a record's footer
+lists the corrections `docs/decisions/amendments.md` holds.
+
+**Elsewhere:** `ROADMAP.md` (what is next, and the bugs), `CHANGELOG.md` (what happened), `README.md` (for people)
+and `FINGERPRINTS.md` (the keys a release is signed with). In `docs/`: `status.md` (history), `dev-environment.md`
+(this machine, as this app uses it), `conventions.md` (in full), and `decisions/amendments.md` and
+`decisions/open-questions.md`.
+
+## Components (level 1)
+
+| Brief | Covers |
+|---|---|
+| `vault-and-browsing` | the session with encri and the screen in front of the vault, browsing, the manifest and the strings |
+| `settings-and-previews` | the settings screen, the screenshot setting on every window, previews held in memory |
+| `vault-changes` | new folders, renames, moves and deletes, the rights asked for, encri's refusals in the user's terms |
+| `handoffs-and-sharing` | *open with* and the share sheet through encri's handoffs, and what a share says first |
+| `copies` | files and folders copied in and a document copied out: the copy, the picker's side, the bar's words |
+| `transfer-service` | the foreground service a copy runs behind: its grants, permissions and notifications |
+| `build-and-ci` | Gradle and the toolchain, the gates, dependency pinning, the hooks, CI, the encri-api pin |
+| `release-and-signing` | reproducible releases, the signing kit, Play and GitHub, the fingerprints, the third-party notices |
+
+A brief stays under 12 KB; one that outgrows that is split into two components rather than grown.
+
+## Hard constraints
+
+These are external facts that shape everything else. Not negotiable.
+
+1. **A handoff lasts only as long as the session that made it, and ends when the vault locks** (encri D117). So the
+   session belongs to the process, not to a screen (F2), and an app that reads a share after a lock, or after this
+   app is closed, finds nothing, which the share says first (F7).
+2. **encri keys a grant on this app's application id** (encri D120), so `com.systemhalted.encri.files` is permanent
+   from the first build a user installs (F1).
+3. **encri saves a write only when the writer finishes** (encri-api L11). A copy that is stopped is abandoned by
+   throwing out of the writer, never by returning early (F6).
+4. **A file the system's picker hands over is readable only while the task of the screen that received it is alive**,
+   or, handed to a service in its start intent, until the service stops for that start; a folder's grant reaches what
+   is in it only as a prefix of its tree URI (F6, F8, F11).
+5. **`FLAG_SECURE` on an Activity reaches none of its dialogs, toasts or notifications.** A dialog is a window of its
+   own (F3); a toast and a notification are drawn by the system, outside this app's windows (F5, F8).
+6. **encri's notice that a folder changed is best effort** (encri-api's `PROTOCOL.md`), so a folder is listed again
+   whenever the screen comes to the front (F2).
+7. **Android limits work in the background**: from API 31 it refuses a foreground service to an app in the
+   background, from API 34 it may pause a background process, and from API 35 a `dataSync` service has six hours a day
+   (F8).
+8. **encri cannot run below API 27** (encri D14), so minSdk is 27; targetSdk is 36 (F1).
+
+## Invariants
+
+Violating any of these is a design bug, not a tradeoff.
+
+- **The vault is reached only through encri-client**, never through the system file picker (F1, encri D112).
+- **Nothing of the vault is written to this phone's storage by this app.** Previews live in memory alone (F4, encri
+  D112), a copy is never staged (F6), and a share is a handoff, never a decrypted copy (F7). A copy out goes only to
+  the place the user picked (F6).
+- **A locked vault shows nothing of itself**: no document, no folder's name in the title, no name in a copy's bar, and
+  no preview. The place is kept in memory, and an unlock lists it again (F2, F4, F6, F11).
+- **No document's name reaches a notification or a toast.** A notification counts (F5, F8, F11).
+- **Every window this app draws follows the screenshot setting**, each dialog and the notices included; off, which is
+  the default, screenshots are blocked (F3, F5, F10).
+- **Plaintext leaves the vault only once the user has read what it costs, every time.** A copy out and a share are
+  each confirmed, with no *don't ask again* (F6, F7; encri D118, D123).
+- **A name is never changed into one the user did not choose.** A taken name is refused, for a change, a file copied
+  in and a folder copied in (F5, F6, F11); only a folder's `(unfinished)` marker takes a free name while it fills
+  (F11).
+- **Nothing reads as whole that is not.** A copy in is made as `(unfinished) <name>` and takes its own name only when
+  whole, and a folder only once everything in it has (F6, F11). What cannot be listed whole is said, never skipped
+  (F11).
+- **Nothing here starts one of encri's screens on its own.** A remedy (*Ask encri*, *Unlock*, *Try again*, *Allow
+  more in encri*) is a button the user presses (F2, F5; encri D17).
+- **No persistable grant is taken** on what the picker hands over, so nothing is written to the system's record of
+  kept grants (F6, F11).
+
+## Hazards
+
+- **Never run encri's `:app:connectedDebugAndroidTest` on a phone that holds a vault.** It uninstalls encri, and the
+  vault and its keys go with it (encri D39). A device run here goes against the encri already installed.
+- **Never run two Gradle invocations at once**: the included encri-api build is one more set of outputs for them to
+  fight over. Gradle runs on JDK 21 (`docs/dev-environment.md`).
+- **`signed/` is never committed.** It holds a release's signed files, brought back from the key machine; it is
+  gitignored (F12).
+- **The project's earlier name is never written**: not in code, docs, commits or any sibling repository (encri D124).
+
+## What this project keeps finding
+
+- **A phone finds what Robolectric does not.** encri's rename stamping the time over a copied file's date (F6), encri
+  offered in its own share sheet (F7), a share that came with no notice (F2, encri B111), and the notices row drawn
+  as one more explanation (F9, F10). Every record says what ran on a phone, and what did not.
+- **A test that has never failed has not been tested.** Each record reverts its guards one at a time and watches the
+  tests that hold them fail (F3, F4, F5, F6, F8, F11).
+- **Measure both ways, and record what was not measured as unmeasured.** The prefix grant was measured with and
+  without its flag (F11); Play's key timing was found by trying an upload (F9).
+- **Defects live in the seams between correct pieces**, as encri found: a date set before a rename that stamps the
+  time is two correct steps in the wrong order (F6; encri B6, B14).
+
+## Code rules in every module
+
+- **Framework views, built in code: no AndroidX, no Compose, no image library** (F1). What a user receives is the
+  client, its coroutines and the Kotlin standard library, which `app/gradle.lockfile` lists.
+- **Screens are thin, and what they show is decided by pure functions with tests that need no phone** (`Screen.of`,
+  `Outcomes`, `Rows`, `TransferWords`). The screens run under Robolectric at API 27 and 36 against a stand-in for
+  encri (F1, F2, F5).
+- **One coverage gate on the whole module, nothing excluded: 80% of lines, and 85% of changed lines in a pull
+  request** (F1, encri D5).
+- **Another app's provider is reached only through an unstable client**, so its death is a failed read and not this
+  app's death; `ForeignDocumentsTest` holds every source to it (F6, encri B100).
+- **A message encri meant for a developer never reaches the screen** (F2, F5; encri-api's `PROTOCOL.md`).
+
+## Repository conventions
+
+Full text, with the reasons: `docs/conventions.md`.
+
+- **Default branch is `master`**, by SystemHalted organization policy. Never rename it to `main`.
+- **Commits are signed and Conventional.** lefthook runs signing preflight, ktlint and detekt on commit, the message
+  check, and signatures, the encri-api pin, the unit tests and the notices gate on push. Every rule a hook enforces is
+  enforced again in `.github/workflows/`, because `--no-verify` always exists.
+- **Every commit builds and passes its own tests, not just the branch tip.**
+- **Merge with a merge commit or a rebase, never a squash** (encri D7).
+- **Dependencies are pinned twice** (F1): `gradle/verification-metadata.xml`, regenerated from an empty file over
+  every task a workflow runs, and `app/gradle.lockfile` for what ships, in STRICT mode
+  (`./gradlew assembleRelease --write-locks`).
+- **Bootstrap a fresh clone**: `lefthook install`, then `scripts/ci/encri-api fetch ../encri-api`. Bump
+  `config/encri-api.pin` in the commit that needs the newer encri-api, and push encri-api first (F9).
+- **`.claude/rules/` is committed; the rest of `.claude/` stays per-machine, and `signed/` is never committed** (F12).
+
+## Recording what is decided
+
+1. **A settled design question becomes a decision record**, not only an answer in chat:
+   `docs/decisions/Fnnn-<slug>.md`, the next free number, beginning `# Fnnn — <title>` then
+   `*YYYY-MM-DD · accepted…*`, with what was rejected and measured, and *flagged for veto* where unconfirmed.
+2. **Regenerate the index and footers**, `python3 scripts/docs/decision-index.py .`, never by hand; then check that
+   the briefs still cover the tree with `python3 scripts/docs/brief-coverage.py .`.
+3. **Update the brief** of every component the decision governs: add the rule and a row to its *Decisions* table.
+   A brief must stay under 12 KB; if one outgrows that, split the component.
+4. **Amend earlier records in place**, with strike-through and "amended by Fnnn", and add a line to
+   `docs/decisions/amendments.md`. Bugs go in `ROADMAP.md`; what landed, in `CHANGELOG.md`.
+
+**When they disagree, the decision records win**, and the briefs, `ROADMAP.md` or `CHANGELOG.md` are fixed.

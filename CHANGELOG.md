@@ -1,11 +1,26 @@
-# encri-files — Changelog
+# encri-files — changelog
 
-What happened, one entry per roadmap item. `AGENTS.md` is why, and an entry links to a decision rather
-than restating it.
+What happened, newest first. Why is in `docs/decisions/`, and what is next is in `ROADMAP.md`.
 
 ## Unreleased
 
-### A folder copied in — 2026-11-03
+### The documentation laid out as the suite's (2026-11-11)
+
+**Completed (F12).** The decision log left `AGENTS.md`, as encri's did: each of F1 to F11 is a record of its own in
+`docs/decisions/`, word for word, with an index that `scripts/docs/decision-index.py` writes. The status history, the
+conventions, the development environment and the open questions moved to `docs/` unchanged, and the old file was
+rebuilt from them byte for byte to check that nothing was lost. `AGENTS.md` is now the map every session loads, 186
+lines where it was 783, and eight component briefs in `.claude/rules/` load when their files are touched.
+`README.md`, `ROADMAP.md`, `CHANGELOG.md` and `FINGERPRINTS.md` took the suite's titles and pointers, with their
+entries unchanged. `signed/` is gitignored.
+
+**Brought up to date in `ROADMAP.md`.** The backup screens' item, with encri-api's L21 and encri D146; B111, which
+encri closed on 2026-10-24; and the *Send its name* tick (encri D148) added to the queue.
+
+**Known issues.** Code and older documents still cite `AGENTS.md F5` and the like, which now means
+`docs/decisions/F005-*.md`, as `AGENTS.md` says (F12).
+
+### A folder copied in (2026-11-03)
 
 **Completed (F11).** *Copy a folder in*, beside *Copy files in*, copies a folder chosen in the system's picker into the
 vault, with the folders in it and all their files. The whole folder is looked through first, so a copy that will not
@@ -18,7 +33,7 @@ copy: everything arrived, at its size and with its date. The same build without 
 grant to the copy's service as a prefix lost the three files read after the task was gone, which is what the change is
 for.
 
-### The first release — 2026-10-29
+### The first release (2026-10-29)
 
 **Under way (F9).** Every build but a developer's is made against the encri-api commit `config/encri-api.pin` names,
 `c27f139`, which encri's first release was built against; CI had been building against whatever encri-api's `master`
@@ -44,7 +59,7 @@ explanations around it, so it did not look like something to press. It is drawn 
 and unsigned commits. GitHub's CI built the release from `6644860` and got the same two files, byte for byte, as the
 maintainer's two builds: APK `7d447874…`, bundle `857967e6…`. The kit that signs them is made.
 
-### A copy that carries on — 2026-10-23
+### A copy that carries on (2026-10-23)
 
 **Completed (F8).** A copy into or out of the vault runs behind a foreground service and a notification, so it carries
 on when the user goes to another app or swipes Encri Files away. The notification counts files and bytes, offers
@@ -55,7 +70,7 @@ notification.
 
 **Known issues.** The notification question at API 33+, and the service at API 34+, have not run on a phone.
 
-### Sharing out — 2026-10-23
+### Sharing out (2026-10-23)
 
 **Completed (F7).** *Share* on a document's long press says what a share costs, then hands the document to the share
 sheet through a handoff. Checked on the A20: Nextcloud uploaded a shared document to the test server byte for byte.
@@ -63,7 +78,7 @@ sheet through a handoff. Checked on the A20: Nextcloud uploaded a shared documen
 **Bug found and fixed before it shipped.** The share sheet offered encri itself, whose share screen refuses its own
 documents. encri is left out of the sheet.
 
-### Copying in and out — 2026-10-23
+### Copying in and out (2026-10-23)
 
 **Completed (F6).** *Copy files in* in the menu takes any number of files from the system's picker into the folder
 being looked at; *Copy out of the vault* on a document's long press says what a copy out costs and then asks where it
@@ -77,14 +92,14 @@ the date was set before the rename. It is set after.
 **Known issues.** ~~A copy runs in the app's process, so Android may pause or stop it while another app is in front
 (`ROADMAP.md`, *Later*).~~ Fixed by F8.
 
-### Folders, renames, moves and deletes — 2026-10-23
+### Folders, renames, moves and deletes (2026-10-23)
 
 **Completed (F5).** *New folder* in the menu, and *Rename*, *Move* and *Delete* from a long press, each one
 request to encri. The app asks for every right; a grant that holds fewer offers *Allow more in encri*. A taken name
 is refused rather than changed, a move is made by going to the folder, and a delete is confirmed by name. Every
 dialog follows the screenshot setting. Checked on the A20 against encri.
 
-### Previews — 2026-10-23
+### Previews (2026-10-23)
 
 **Completed (F4).** A photo or a video gets a preview in its row, made and encoded by encri, held in memory alone
 and dropped at every lock. *Show previews*, on by default, is in the settings screen and changes Encri Files alone;
@@ -93,12 +108,12 @@ off, nothing is asked for. Checked on the A20 with a photo shared into encri fro
 **Bug found and fixed.** A document changed under a minute ago read *0 minutes ago* on the A20, as encri's own
 screens once did (its B98). It reads *just now*.
 
-### A setting for screenshots — 2026-10-23
+### A setting for screenshots (2026-10-23)
 
 **Completed (F3).** *Allow screenshots*, off by default, in a settings screen reached from the menu. It says what a
 screenshot of the vault costs, and that it changes Encri Files alone. Checked with `screencap` on the A20.
 
-### The first screen — 2026-10-23
+### The first screen (2026-10-23)
 
 **Completed (F2).** The app connects to encri, asks the user to let it in on encri's consent screen,
 unlocks the vault on encri's unlock screen, lists the vault a folder at a time, folders first, and opens a
@@ -111,9 +126,9 @@ changed, so this app showed an empty vault until it was asked again. Filed as en
 lists the folder again whenever its screen comes to the front.
 
 **Known issues.** The API 33+ back callback has not run on a phone. Every document opened mints a handoff
-that lasts until the vault locks (`AGENTS.md`, *Open questions*).
+that lasts until the vault locks (`docs/decisions/open-questions.md`).
 
-### The scaffold — 2026-10-23
+### The scaffold (2026-10-23)
 
 **Completed (F1).** A Gradle project with one application module, `com.systemhalted.encri.files`, called
 "Encri Files" for now. encri-api's toolchain, hooks, CI and gates, an 80% line gate on the module, the

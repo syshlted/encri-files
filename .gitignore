@@ -1,5 +1,11 @@
-# Claude Code local config
-.claude/
+# Claude Code local config. The exception is .claude/rules/: the per-component briefs that
+# load when their files are touched are part of the project's documentation, as in encri (encri D127, F12).
+.claude/*
+!.claude/rules/
+
+# A release's signed outputs are copied here from the key machine, and never committed: the other
+# repositories each found a signed/ directory untracked and one `git add .` from being pushed.
+signed/
 
 # Gradle
 .gradle/

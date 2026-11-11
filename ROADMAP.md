@@ -1,11 +1,18 @@
-# encri-files — Roadmap
+# encri-files — roadmap
 
-What is next, and in what order. `AGENTS.md` is why; `CHANGELOG.md` is what happened. When this file
-and `AGENTS.md` disagree, `AGENTS.md` wins.
+What is next, and in what order. Why is in `docs/decisions/`, and what happened is in `CHANGELOG.md`. When they
+disagree, the decision records win.
 
-Severities, as in encri: **S1** loses a user's data or lets the wrong app read it · **S2** a wrong
-answer a user cannot tell from a right one · **S3** wrong under a narrow race, or a cost nobody chose ·
-**S4** debt.
+## Severity
+
+| | Meaning |
+|---|---|
+| **S1** | Data loss, a confidentiality breach, or a vault that will not open |
+| **S2** | A user-visible wrong answer or failure, with no workaround |
+| **S3** | Wrong under a narrow race, or an honest limit that needs disclosing |
+| **S4** | Waste, cosmetics, or documentation that contradicts the code |
+
+Severity is about the consequence if it happens, not the odds of it happening.
 
 ## Now
 
@@ -17,25 +24,31 @@ app. What follows is encri's step 13 for the file manager (encri D112 to D118, D
 3. ~~**Copying in and out.**~~ **Done 2026-10-23 (F6).** Folders and several documents out at once are not
    built; see F6. **A folder in since 2026-11-03 (F11).**
 4. ~~**Sharing out**~~ **Done 2026-10-23 (F7)**, one document at a time.
-5. **encri's backup screens, by their public actions** (encri D123): *Back up*, *Save a backup file* and
+5. **encri's backup screens, by their public actions** (encri D123): ~~*Back up*,~~ *Save a backup file* and
    *Restore*. ~~Waits for encri to give the three screens their actions, which is encri's step 13 item 6.~~
    **Unblocked 2026-10-26:** encri exports the three screens (encri D133), and encri-api names their actions
    and gives `Encri.backupsIntent()`, `saveBackupFileIntent()` and `restoreIntent()` (encri-api L20). Each needs
    no session. The screen takes nothing from the Intent and returns no result, and it opens in this app's task.
-   **Since encri D137 (2026-10-27)** the scheduled backup leaves encri for two backup apps of its own, so *Back up*
-   will open one of them rather than encri, and `backupsIntent()` changes in encri-api before its first release.
-   *Save a backup file* and *Restore* stay encri's.
+   ~~**Since encri D137 (2026-10-27)** the scheduled backup leaves encri for two backup apps of its own, so *Back up*
+   will open one of them rather than encri, and `backupsIntent()` changes in encri-api before its first release.~~
+   **Now:** encri-api's L21 (2026-10-27) removed `ACTION_BACKUPS` and `backupsIntent()` before the contract's first
+   release, and encri D146 (2026-11-09) made the scheduled backup one app, Encri Backup (`../encri-backup`,
+   `com.systemhalted.encri.backup`), not two. *Back up* has no action to open until the contract gains one for it
+   (encri-api L21). What is left here is an entry for each of the other two, `Encri.saveBackupFileIntent()` and
+   `restoreIntent()` (encri D133, encri-api L20). *Save a backup file* and *Restore* stay encri's.
 6. **Device tests against encri**, as encri-api's L13 runs them: install encri, let the test in, and drive
    this app's screen from another process. The first run was by hand on the A20 (F2).
 7. **The visible name.** "Encri Files" is for now (F1).
-
-## Later
-
-- ~~**A copy that keeps going while another app is in front** (S3, F6's first flag): a `dataSync` foreground service,
-  which is this app's first permission. Until then a long copy may pause or stop when the user leaves.~~ **Done
-  2026-10-23 (F8).**
-- **Choosing several documents at once**, to copy out or share them together, which F6 and F7 left out; and
-  copying a folder ~~in or~~ out (a folder in is F11).
+8. **The *Send its name* tick** (encri D148, encri-api L24 and L25), added 2026-11-11. In the dialog this app already
+   shows before a share (F7), a tick, unticked every time and never remembered, that asks for the document's real
+   name through `EncriSession.handOff(documentIds, withNames = true)`, which is contract version 2. Since encri D147
+   the app a handoff reaches reads a name made up from the handoff's token unless the tick asks; the dialog's words say
+   that the app chosen next sees the name. An encri older than version 2 answers `STATUS_UNSUPPORTED`, and the app
+   says so rather than sending the document under a name the user did not choose (encri-api L24). A tap that opens a
+   document asks nothing, so it sends no name; whether a named *open with* is offered from the long press is this
+   app's to decide in a record of its own (encri D148). **Waits for** the pin to move to an encri-api commit with L24,
+   `a414543`, ~~which is not pushed yet (until it is, CI cannot fetch it, and `scripts/ci/encri-api fetch` needs
+   `ENCRI_API_SOURCE=../encri-api`)~~ **pushed 2026-11-11**; and for an encri that has built D147, which encri did on 2026-11-11 (its step 15).
 
 ## Before the first release
 
@@ -70,7 +83,18 @@ app. What follows is encri's step 13 for the file manager (encri D112 to D118, D
 - **CodeQL and dependency scanning**, carried across from encri-api (its L7 and L10), which this
   repository does not have yet.
 
-## Bug queue
+## Bugs
 
 Empty. B111 in encri's roadmap — a share saved through encri tells no app that a folder changed — was
-found by this app's first device run, and is encri's to fix.
+found by this app's first device run, ~~and is encri's to fix~~. **Fixed in encri, which closed it on 2026-10-24**:
+each of the four writes encri makes in its own process, a share among them, now tells every companion session watching
+the folder, and the fix ran on the four phones on 2026-10-27 (encri's roadmap). This app still lists a folder again
+whenever its screen comes to the front (F2).
+
+## Later
+
+- ~~**A copy that keeps going while another app is in front** (S3, F6's first flag): a `dataSync` foreground service,
+  which is this app's first permission. Until then a long copy may pause or stop when the user leaves.~~ **Done
+  2026-10-23 (F8).**
+- **Choosing several documents at once**, to copy out or share them together, which F6 and F7 left out; and
+  copying a folder ~~in or~~ out (a folder in is F11).

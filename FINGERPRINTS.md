@@ -1,7 +1,7 @@
 # Signing fingerprints
 
 The keys SystemHalted's encri apps are signed with, so that a build can be checked against them (encri D115,
-AGENTS.md F9). Every release of this repository is inside a tag signed with GPG key
+F9). Every release of this repository is inside a tag signed with GPG key
 `E483D747728C1C9EA213FB29615692825276E947`, which is published on keys.openpgp.org and on GitHub, so this file
 cannot be changed without the tag showing it. The same fingerprints are in
 [encri-api's repository](https://github.com/syshlted/encri-api/blob/master/FINGERPRINTS.md), on each app's Play
