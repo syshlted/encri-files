@@ -50,8 +50,8 @@
     <string name="action_move">Move</string>
     <string name="action_delete">Delete</string>
     <string name="delete_title">Delete “%1$s”?</string>
-    <string name="delete_document_explain">This cannot be undone. A backup encri made before now may still hold a copy.</string>
-    <string name="delete_folder_explain">Everything in the folder is deleted with it. This cannot be undone. A backup encri made before now may still hold a copy.</string>
+    <string name="delete_document_explain">It is deleted from the vault, not put in a bin: this cannot be undone. A backup encri made before now may still hold a copy.</string>
+    <string name="delete_folder_explain">Everything in the folder is deleted with it. It is deleted from the vault, not put in a bin: this cannot be undone. A backup encri made before now may still hold a copy.</string>
     <string name="moving">Moving “%1$s”. Go to the folder it should go into, and move it there.</string>
     <string name="move_here">Move here</string>
     <string name="nothing_allowed">encri has not let this app change anything here. “Allow more in encri”, in the menu, asks it.</string>

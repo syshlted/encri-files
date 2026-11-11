@@ -4,6 +4,14 @@ What happened, newest first. Why is in `docs/decisions/`, and what is next is in
 
 ## Unreleased
 
+### A delete says it is not put in a bin, as Encri Images' does (2026-11-11)
+
+**Completed.** Deleting a document or a folder now says that it is deleted from the vault, not put in a bin, and
+cannot be undone: the words encri-images' I11 calls F5's, which Encri Images already shows. The folder's question
+still begins by saying everything in the folder goes with it, which `EditsTest` checks. The suite's
+`docs/documentation.md` asks the companions to explain the same things in the same words. The unit suite passes, 358
+tests.
+
 ### The documentation laid out as the suite's (2026-11-11)
 
 **Completed (F12).** The decision log left `AGENTS.md`, as encri's did: each of F1 to F11 is a record of its own in
