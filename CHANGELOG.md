@@ -4,6 +4,27 @@ What happened, newest first. Why is in `docs/decisions/`, and what is next is in
 
 ## Unreleased
 
+### API 33 on Waydroid, and the delete questions on the A20 (2026-11-12)
+
+**Checked.** Encri Files at `c12b8f6`, a debug build, against encri at `e632c7e`, which has built D147, on the Galaxy
+A20 (API 30) and on Waydroid (LineageOS 20, API 33), a ROM at API 33 and not a handset. On Waydroid, the first run of
+these at API 33: back went up out of a folder and, at the top, left the app with its activity stopped and not finished
+(F2, and F6's account of API 31 and up); the notification question was asked as a copy started, after the picker had
+closed, and again at the next copy once refused, and once allowed a 192 MiB copy's notification counted the bytes and
+named no file (F8); a taken name was refused in words (F6); `screencap` got nothing with *Allow screenshots* off and a
+whole frame with it on (F3); and previews off took every slot away and gave the names its room (F4). On the A20 the
+updated app was let in again through encri's consent screen.
+
+**The delete questions on a phone.** The entry below checked the new words with the unit suite alone. On the A20 they
+read as written: a folder's question says that everything in it is deleted with it, that it is deleted from the vault,
+not put in a bin, and cannot be undone, and that a backup encri made before may still hold a copy; a document's says
+the same without the first sentence. Both were cancelled.
+
+**Known issues.** Not run: API 34's type permission and API 35's budget, which are the S24's (F8); back at the top
+during a copy, which the A20's picker kept from being tried by showing no tiles in Downloads (F6); a folder copy above
+API 30, and its bytes against the originals (F11); a share or an *open with* against an encri that has built D147; and
+the G6, the S9 and the S24.
+
 ### A delete says it is not put in a bin, as Encri Images' does (2026-11-11)
 
 **Completed.** Deleting a document or a folder now says that it is deleted from the vault, not put in a bin, and
@@ -76,7 +97,8 @@ its first permissions: two for the service, and one, asked for when a copy start
 the A20 against encri with a 2 GB file each way, the app's task removed mid-copy, and *Stop* pressed in the
 notification.
 
-**Known issues.** The notification question at API 33+, and the service at API 34+, have not run on a phone.
+**Known issues.** ~~The notification question at API 33+, and the service at API 34+, have not run on a phone.~~ The
+service at API 34+ has not run on a phone; the notification question ran at API 33 on Waydroid, a ROM, on 2026-11-12.
 
 ### Sharing out (2026-10-23)
 
@@ -133,7 +155,8 @@ Run by hand against encri on the Galaxy A20.
 changed, so this app showed an empty vault until it was asked again. Filed as encri's B111. This app now
 lists the folder again whenever its screen comes to the front.
 
-**Known issues.** The API 33+ back callback has not run on a phone. Every document opened mints a handoff
+**Known issues.** ~~The API 33+ back callback has not run on a phone.~~ The callback ran on Waydroid, a ROM at API
+33, on 2026-11-12, and on no handset yet. Every document opened mints a handoff
 that lasts until the vault locks (`docs/decisions/open-questions.md`).
 
 ### The scaffold (2026-10-23)

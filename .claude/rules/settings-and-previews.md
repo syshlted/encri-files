@@ -69,7 +69,11 @@ the foot of the settings is `release-and-signing`'s (F10). This brief is level 1
   drop at a lock fails the tests that a preview is dropped and that a request in flight is cancelled and never shown.
   94% of lines at F4. (F3, F4)
 - The minified release build on the API 34 emulator opened the settings and showed a picture's preview. (F9)
-- **Not run on a phone above API 30**, apart from that emulator walk-through.
+- ~~**Not run on a phone above API 30**, apart from that emulator walk-through.~~ **On Waydroid (LineageOS 20, API 33),
+  2026-11-12**, a ROM at API 33 and not a handset: with *Allow screenshots* off `screencap` returned 0 bytes, on a full
+  1920×1080 frame, off again 0 bytes (F3). Two 160×120 photos seeded by Encri Images' `SeedLibrary`: previews on, each
+  slot held about 2,900 distinct colours; off, the slot was gone and the names moved left into its place; on again,
+  back (F4). Both settings were left as found. **Not run on a handset above API 30**, which only the S24 is.
 
 ## Decisions
 | | Why it matters here |

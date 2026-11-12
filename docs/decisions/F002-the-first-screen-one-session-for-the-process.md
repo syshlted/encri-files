@@ -54,8 +54,10 @@ consent screen named the app from the system and listed reading alone; the whole
 shared into encri's *Received* folder listed and opened in HTML Viewer, another app, which read its name and
 its content through the handoff; locking from the menu left no name on screen, and the unlock on encri's
 screen came straight back to *Received*; a rotation kept the place and the session; Up and back went up, and
-back at the top left. **Not run on a phone:** the API 33+ back callback, which Robolectric only registers;
-and the G6, the S9 and the S24.
+back at the top left. **Not run on a phone:** ~~the API 33+ back callback, which Robolectric only registers;
+and~~ the G6, the S9 and the S24. **The API 33+ back callback ran on Waydroid (LineageOS 20, API 33), 2026-11-12**,
+a ROM at API 33 and not a handset: inside a folder back went up to the top, and at the top it left Encri Files, whose
+activity stayed in its task, stopped and not finished.
 
 **Flagged for veto:**
 
@@ -68,6 +70,9 @@ and the G6, the S9 and the S24.
 
 ## Amended since, as recorded in `amendments.md`
 
+- **F2's back callback ran at API 33, on Waydroid (2026-11-12).** LineageOS 20, a ROM at API 33 and not a handset:
+  inside a folder back went up to the top, and at the top it left Encri Files, whose activity stayed in its task,
+  stopped and not finished. The G6, the S9 and the S24 are still not run. Struck through in place.
 - **F2's `FLAG_SECURE` on the window is a setting since F3 (2026-10-23)**, at the user's direction: *Allow
   screenshots*, off by default, so screenshots stay blocked unless the user allows them. F2's second flag is answered.
 - **F2's reading alone is superseded by F5 (2026-10-23).** The app asks for every right, because it uses every one,

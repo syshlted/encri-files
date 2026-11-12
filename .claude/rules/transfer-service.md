@@ -69,8 +69,11 @@ manifest declares for them. The copy itself is `copies`'. This brief is level 1;
   flag. (F11)
 - The minified release build on the API 34 emulator asked for notifications when the first copy started, API 33's
   question, which had never run on a device. (F9)
-- **Not run on a phone:** API 33's notification question, API 34's type permission and API 35's budget, which the S24
-  would take; and the G6 and the S9. (F8)
+- **Not run on a phone:** ~~API 33's notification question,~~ API 34's type permission and API 35's budget, which the
+  S24 would take; and the G6 and the S9. (F8) **API 33's question ran on Waydroid (LineageOS 20, API 33), 2026-11-12**,
+  a ROM at API 33 and not a handset: asked as a copy started, after the picker had closed; *Don't allow*, and a 32 MiB
+  copy finished with nothing posted; asked again at the next copy, and allowed; a 192 MiB copy then posted *Copying 1
+  of 1 into the vault…*, *0 B of 201 MB*, then *92 MB of 201 MB*, naming no file, and was gone once it ended. (F8)
 
 ## Decisions
 | | Why it matters here |
@@ -87,7 +90,8 @@ manifest declares for them. The copy itself is `copies`'. This brief is level 1;
 ## Open here
 - F8's flags: **notifications asked for when a copy starts**, rather than never or at first launch; **no ending said
   while a screen of this app is in front.**
-- API 34's and 35's halves, and API 33's question on a phone, are unmeasured. (F8)
+- API 34's and 35's halves~~, and API 33's question on a phone,~~ are unmeasured, the S24's to take. API 33's question
+  ran on Waydroid, a ROM at API 33, on 2026-11-12. (F8)
 
 ## Read next
 - Related briefs: `.claude/rules/copies.md`, `.claude/rules/vault-and-browsing.md` (the manifest)

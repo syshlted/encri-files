@@ -5,6 +5,16 @@ Each entry corrects a record. Its bold lead names the record possessively ("F2's
 
 ## Amendments
 
+- **F2's back callback ran at API 33, on Waydroid (2026-11-12).** LineageOS 20, a ROM at API 33 and not a handset:
+  inside a folder back went up to the top, and at the top it left Encri Files, whose activity stayed in its task,
+  stopped and not finished. The G6, the S9 and the S24 are still not run. Struck through in place.
+- **F6's back at the top from API 31, recalled and not measured, was seen at API 33 on Waydroid (2026-11-12)**, with
+  no copy running, when this app leaves back at the top to the platform: the activity stayed in its task, stopped and
+  not finished (F2). Back at the top during a copy is still not measured. Struck through in place.
+- **F8's notification question ran at API 33, on Waydroid (2026-11-12).** LineageOS 20, a ROM at API 33 and not a
+  handset: asked as a copy started, after the picker had closed; refused, the copy finished with nothing posted, and
+  the next copy asked again; allowed, a copy's notification counted the bytes and named no file. API 34's type
+  permission and API 35's budget are still the S24's, and the G6 and the S9 still not run. Struck through in place.
 - **The repository conventions' "This one is the decision log" and "this file wins" are moved by F12
   (2026-11-11).** The decision log is `docs/decisions/`, one record to a file, and it wins over `ROADMAP.md`,
   `CHANGELOG.md` and the component briefs in `.claude/rules/`. `AGENTS.md` is the always-loaded map. Struck through

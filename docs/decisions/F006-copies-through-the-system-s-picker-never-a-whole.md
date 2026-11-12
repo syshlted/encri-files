@@ -47,7 +47,9 @@ protected.
 over is readable while the task of the activity that received it is alive (Android's own `FileProvider`
 documentation: *"Permissions granted in an Intent remain in effect while the stack of the receiving Activity is
 active"*), so closing the task mid-copy could leave the rest unreadable. From API 31 back at the top does that anyway;
-below it, this keeps it so. Recalled from the documentation, and not measured.
+below it, this keeps it so. Recalled from the documentation, ~~and not measured~~ and seen at API 33 on Waydroid
+(LineageOS 20), 2026-11-12, with no copy running: back at the top, which this app leaves to the platform then, left
+Encri Files' activity in its task, stopped and not finished (F2). During a copy it is not measured.
 
 **64 KiB at a time**, which no FUSE request an AppFuse bridge carries can fail on (encri D88), whichever side another
 app's provider is on.
@@ -84,6 +86,9 @@ the same as the original's; and Stop pressed a second into a copy left nothing i
 
 ## Amended since, as recorded in `amendments.md`
 
+- **F6's back at the top from API 31, recalled and not measured, was seen at API 33 on Waydroid (2026-11-12)**, with
+  no copy running, when this app leaves back at the top to the platform: the activity stayed in its task, stopped and
+  not finished (F2). Back at the top during a copy is still not measured. Struck through in place.
 - **F6's copying a folder in, which it left unbuilt, is built by F11 (2026-11-03).** *Copy a folder in* takes one
   folder from the system's picker and copies it, the folders in it and all their files, into the folder the user is
   looking at. Copying a folder out, several documents out at once, and choosing what happens to a taken name are still

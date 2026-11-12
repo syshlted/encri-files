@@ -75,8 +75,14 @@ is level 1; the full records are in `docs/decisions/`.
   levels. (F2)
 - The minified release build, on the API 34 emulator, connected, was let in through encri's consent screen, listed
   the vault, and locked and unlocked through encri. (F9)
-- **Not run on a phone:** the API 33+ back callback, which Robolectric only registers; and the G6, the S9 and the
-  S24. (F2)
+- **On the A20, 2026-11-12, after an update:** the screen in front of the vault read *Encri Files has not been let into
+  your vault yet, or was let in before this version was installed. encri asks you, on its own screen, what this app may
+  see.* with *Ask encri*; encri's consent screen named the app, version 1000, the debug certificate and five rights,
+  and said the registry has an app of that name signed with a different key. (F2, F5, encri D120)
+- **Not run on a phone:** ~~the API 33+ back callback, which Robolectric only registers; and~~ the G6, the S9 and the
+  S24. **The back callback ran on Waydroid (LineageOS 20, API 33), 2026-11-12**, a ROM at API 33 and not a handset:
+  inside a folder back went up to the top, and at the top it left the app, its activity stopped in its task and not
+  finished. (F2)
 
 ## Decisions
 | | Why it matters here |
@@ -94,7 +100,8 @@ is level 1; the full records are in `docs/decisions/`.
 | encri-api L23 | Allowing replaces a grant and ends its sessions; a refusal changes nothing |
 
 ## Open here
-- The API 33+ back callback has not run on a phone. (F2)
+- ~~The API 33+ back callback has not run on a phone.~~ It ran on Waydroid, a ROM at API 33, on 2026-11-12; a handset
+  at 33 or above, which only the S24 is, has not run it. (F2)
 - **The visible name**: *Encri Files* is for now (F1, `docs/decisions/open-questions.md`); a trademark search for
   encri is owed before anything is published beyond testers (encri D124, D136).
 - **Device tests against encri**, as encri-api's L13 runs them, are not built: every run so far was by hand

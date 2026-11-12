@@ -57,6 +57,10 @@ records are in `docs/decisions/`.
   the note inside it. (F5)
 - The minified release build on the API 34 emulator made, renamed and deleted a folder and moved a document into it.
   (F9)
+- **The delete questions of `c12b8f6`, on the A20, 2026-11-12**, against encri (`CHANGELOG.md`, 2026-11-11, which
+  checked them with the unit suite alone). A folder: *Delete “Albums”?* / *Everything in the folder is deleted with it.
+  It is deleted from the vault, not put in a bin: this cannot be undone. A backup encri made before now may still hold
+  a copy.* A document: *Delete “IMG_00001.jpg”?* / the same, without the first sentence. Both cancelled. (F5)
 
 ## Decisions
 | | Why it matters here |

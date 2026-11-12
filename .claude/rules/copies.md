@@ -79,7 +79,8 @@ brief is level 1; the full records are in `docs/decisions/`.
   is. (F11)
 - From API 30 the picker refuses the storage's root, the Download folder itself, `Android/data` and `Android/obb`; a
   folder inside any of them can be chosen. On the A20 the picker's list takes no taps and its arrow keys stay on
-  *Create new folder*; Tab moves into the list. (F11)
+  *Create new folder*; Tab moves into the list. (F11) Its drawer and *Save* take taps; a file is picked by Tab to the
+  view-mode button above the list, Down onto the file, then Enter (2026-11-12).
 - Rejected: copying as the walk goes; merging into a folder of the same name; a partial folder taking its own name;
   a persistable grant taken and released; `EXTRA_INITIAL_URI`. (F11)
 
@@ -93,9 +94,14 @@ brief is level 1; the full records are in `docs/decisions/`.
   four seconds in, arrived whole and dated. (F11)
 - The minified release build on the API 34 emulator copied a 5 MiB file in with its date and out again with the same
   SHA-256. (F9)
-- **Not measured:** back at the top during a copy, on a phone (F6, recalled from the documentation); a folder copy's
-  bytes against the originals; a cloud app's folder; a loop or a depth over 64 on a real app; a phone above API 30
-  for a folder; the S9, the G6 and the S24. (F6, F11)
+- **On Waydroid (LineageOS 20, API 33), 2026-11-12**, a ROM and not a handset: files of 32 MiB and 192 MiB copied in
+  (F8), and a taken name refused in words, *Nothing was copied into the vault. “encri-f8-large.bin”: Something with that
+  name is already there.* (F6) Back at the top with no copy running left the activity stopped in its task, as F6
+  recalled of API 31 and up. (F2, F6)
+- **Not measured:** back at the top during a copy, on a phone (F6, recalled from the documentation; tried on the A20
+  2026-11-12, whose picker showed no tiles in Downloads though the file was there); a folder copy's bytes against the
+  originals; a cloud app's folder; a loop or a depth over 64 on a real app; a phone above API 30 for a folder; the S9,
+  the G6 and the S24. (F6, F11)
 
 ## Decisions
 | | Why it matters here |
